@@ -17,3 +17,5 @@ conda activate gee
 
 # Run the jupyter:
 jupyter notebook
+
+Open the file .ipynb
