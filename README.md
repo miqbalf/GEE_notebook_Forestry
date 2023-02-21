@@ -13,9 +13,9 @@ https://geemap.org/installation/#youtube-channel
 
 
 # activate the conda environment:
-conda activate gee
+    conda activate gee
 
 # Run the jupyter:
-jupyter notebook
+    jupyter notebook
 
 Open the file .ipynb
