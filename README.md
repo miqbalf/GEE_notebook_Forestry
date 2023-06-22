@@ -9,6 +9,7 @@ https://geemap.org/installation/#youtube-channel
     conda create -n gee python
     conda activate gee
     conda install -c conda-forge mamba
+    conda install -c anaconda jupyter
     mamba install -c conda-forge geemap pygis
 
 
