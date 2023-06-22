@@ -12,6 +12,9 @@ https://geemap.org/installation/#youtube-channel
 # activate the conda environment:
     conda activate gee
     conda install jupyter_contrib_nbextensions -c conda-forge
+    
+#alternatively for notebook
+    pip install notebook
 
 # Run the jupyter:
     jupyter notebook
