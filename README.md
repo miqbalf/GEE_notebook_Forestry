@@ -6,15 +6,12 @@ https://geemap.org/installation/#youtube-channel
 
 # In a nutshell:
 ## install the python miniconda, and run this command:     
-    conda create -n gee python
-    conda activate gee
-    conda install -c conda-forge mamba
-    conda install jupyter_contrib_nbextensions -c conda-forge
-    mamba install -c conda-forge geemap pygis
-
+    conda install -n base mamba -c conda-forge
+    mamba create -n gee geemap geopandas localtileserver pygis python -c conda-forge
 
 # activate the conda environment:
     conda activate gee
+    conda install jupyter_contrib_nbextensions -c conda-forge
 
 # Run the jupyter:
     jupyter notebook
