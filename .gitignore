@@ -3,3 +3,4 @@
 ./shp/
 **/shp_local/**
 *.json
+*_local.ipynb
