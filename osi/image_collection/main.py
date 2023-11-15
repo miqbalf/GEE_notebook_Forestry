@@ -87,7 +87,7 @@ class ImageCollectionComposite:
             sr_image = image.select(['R','G','B','N'], ['red','green', 'blue','nir']).multiply(0.0001)
             return sr_image
         
-        filtered_scaled = filteredNicfi.map(scaling_planet).median().clip(self.AOI) # this one already in median, single image
+        filtered_scaled = filteredNicfi.map(scaling_planet) # this one already in median, single image
         return filtered_scaled
 
 

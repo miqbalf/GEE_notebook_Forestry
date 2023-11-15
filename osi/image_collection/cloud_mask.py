@@ -1,3 +1,5 @@
+import ee
+
 def cloud_mask_tm(image, sr=True):
     qa = image.select('QA_PIXEL')
     dilated = 1 << 1
