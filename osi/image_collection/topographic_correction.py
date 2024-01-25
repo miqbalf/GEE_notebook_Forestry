@@ -5,11 +5,12 @@
 
 import ee
 
+# topographic correction for landsat
 def radians(img):
     return img.toFloat().multiply(3.14159265359).divide(180)
 
 # Define the function to perform physical correction
-def doPhysicalCorrection(image, type_DEM='srtm', I_satellite='LANDSAT'):
+def doPhysicalCorrection(image, type_DEM='srtm', I_satellite='Landsat'):
 
     # illumination parameters
     alos = ee.Image('JAXA/ALOS/AW3D30_V1_1')
@@ -18,12 +19,12 @@ def doPhysicalCorrection(image, type_DEM='srtm', I_satellite='LANDSAT'):
     extent = image.geometry().bounds(1)
 
     # Select DEM, calculate aspect and slope
-    
+
     if type_DEM == 'alos':
         DEM = alos
-    else: 
+    else:
         DEM = srtm
-    
+
     DEM = DEM.clip(extent)
     boxcar = ee.Kernel.square(radius=3, units='pixels', normalize=True)
     DEMs = DEM.convolve(boxcar)
@@ -33,7 +34,7 @@ def doPhysicalCorrection(image, type_DEM='srtm', I_satellite='LANDSAT'):
     ASP = radians(ASP_deg)
     cos_SLP = SLP.cos()
 
-    if I_satellite == 'LANDSAT':
+    if I_satellite == 'Landsat':
         AZ = ee.Number(image.get('SUN_AZIMUTH'))
         ZE = ee.Number(image.get('SUN_ELEVATION'))
     elif I_satellite == 'Sentinel':
