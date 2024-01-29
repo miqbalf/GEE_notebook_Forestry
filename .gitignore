@@ -1,5 +1,7 @@
 .DS_Store
 .ipynb_checkpoints/*
+./.ipynb_checkpoints/**
+.ipynb_checkpoints
 ./shp/
 **/shp_local/**
 *.json

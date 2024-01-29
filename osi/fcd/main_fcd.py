@@ -163,7 +163,7 @@ class FCDCalc:
         results = {
 
             'image_mosaick': self.image_mosaick,
-            'image_collection_mask': self.image_collection_mask,
+            # 'image_collection_mask': self.image_collection_mask,
 
             'avi_image': self.avi_image,
             'bsi_image': self.bsi_image,
