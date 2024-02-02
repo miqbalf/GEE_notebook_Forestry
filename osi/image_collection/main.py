@@ -3,16 +3,17 @@ from .image_collection_composite import ImageCollectionComposite
 from .topographic_correction import doPhysicalCorrection
 
 class ImageCollection(ImageCollectionComposite):
-    def __init__(self, I_satellite, *args,**kwargs):
+    def __init__(self, I_satellite, region, **kwargs):
+        super().__init__(**kwargs)
         self.I_satellite = I_satellite
-        super().__init__(*args, **kwargs)
+        self.region = region
 
     def image_collection_mask(self):
         image_collection_mask = None
         if self.I_satellite == 'Landsat':
             image_collection_mask = self.merging_collection_landsat()
         elif self.I_satellite == 'Planet':
-            image_collection_mask = self.merging_collection_planet(self.AOI) # if there is no image in here, maybe you choose a WRONG REGION
+            image_collection_mask = self.merging_collection_planet() # if there is no image in here, maybe you choose a WRONG REGION
         elif self.I_satellite == 'Sentinel':
             image_collection_mask = self.merging_collection_sentinel()
         return image_collection_mask

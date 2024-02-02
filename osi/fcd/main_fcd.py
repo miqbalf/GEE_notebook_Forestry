@@ -17,12 +17,16 @@ class FCDCalc:
         self.AOI = config['AOI']
         self.date_start_end = config['date_start_end']
         self.cloud_cover_threshold = config['cloud_cover_threshold']
+        self.region = config['region']
 
         # initiate instance class for the image collection and later mosaicking
         self.InputCollection = ImageCollection(AOI=self.AOI, 
                                                date_start_end=self.date_start_end, 
                                                cloud_cover_threshold = self.cloud_cover_threshold, 
-                                               I_satellite=self.I_satellite, config = self.config)
+                                               I_satellite=self.I_satellite, 
+                                               region=self.region, 
+                                               config = self.config
+                                               )
         
         self.image_mosaick = None
         self.image_collection_mask = None

@@ -102,12 +102,12 @@ class ImageCollectionComposite:
 
 
     # planet labs use the existing basemap, without masking, later will be treated in median
-    def merging_collection_planet(self, region='asia'):
+    def merging_collection_planet(self):
         print('selecting Planet images')
         nicfi_col = ee.ImageCollection("projects/planet-nicfi/assets/basemaps/asia")
-        if region == 'asia':
-            nifci_col = nicfi_col
-        elif region == 'africa':
+        if self.region == 'asia':
+            nicfi_col = ee.ImageCollection("projects/planet-nicfi/assets/basemaps/asia")
+        elif self.region == 'africa':
             nicfi_col = ee.ImageCollection("projects/planet-nicfi/assets/basemaps/africa")
 
         filteredNicfi = nicfi_col.filterDate(self.start_date, self.end_date) \
