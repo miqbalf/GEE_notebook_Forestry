@@ -242,11 +242,13 @@ class AssignClassZone:
             '3': 'Historical deforestation (3 or 10 years rule)',
             '8': 'Water Body'
         }
+
+        legend_class = {k:{'name':v, 'color':class_name_map_color[k]} for k,v in class_name_map.items()}
         
 
         return {'all_zone': merged_image,
                 'vis_param_merged': vis_params,
-                'class_name_map':class_name_map,
+                'legend_class': legend_class,
                'grassland_gozone': grassland_gozone,
            'shrubland_gozone': shrubland_gozone,
            'yrf_forest_dense_no10yrs': yrf_forest_dense_no10yrs,
