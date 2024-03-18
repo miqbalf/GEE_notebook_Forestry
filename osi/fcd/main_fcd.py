@@ -187,6 +187,9 @@ class FCDCalc:
             'FCD1_2': self.FCD1_2,
             'FCD2_2': self.FCD2_2,
 
+            'pca_scale': pca_scale,
+            'tileScale': tileScale,
+
         }
         return results
             
