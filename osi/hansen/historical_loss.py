@@ -10,7 +10,8 @@ class HansenHistorical:
         self.AOI = config['AOI']
     def initiate_tcl(self):
         # hansen - updated version - global data
-        gfc = ee.Image("UMD/hansen/global_forest_change_2022_v1_10")
+        # gfc = ee.Image("UMD/hansen/global_forest_change_2022_v1_10")
+        gfc = ee.Image('UMD/hansen/global_forest_change_2023_v1_11') # updated to hansen 2023 version
         
         #Canopy cover percentage (e.g. 30%), for Indonesia
         cc = ee.Number(self.tree_cover_forest)
