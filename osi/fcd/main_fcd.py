@@ -4,10 +4,10 @@
 ## http://www.itto.int/files/itto_project_db_input/2056/Technical/pd13-97-3%20rev1(F)%20FCD-Mapper%20User's%20Guide_e.pdf
 
 import ee
-from gee_lib.osi.image_collection.main import ImageCollection
-from gee_lib.osi.spectral_indices.spectral_analysis import SpectralAnalysis
-from gee_lib.osi.pca.pca_gee import PCA
-from gee_lib.osi.spectral_indices.utils import normalization_100, assigning_band
+from ..image_collection.main import ImageCollection
+from ..spectral_indices.spectral_analysis import SpectralAnalysis
+from ..pca.pca_gee import PCA
+from ..spectral_indices.utils import normalization_100, assigning_band
 
 class FCDCalc:
     def __init__(self, config):

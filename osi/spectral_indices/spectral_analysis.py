@@ -95,3 +95,58 @@ class SpectralAnalysis:
         }
         ).rename('SI')
         return SI
+    
+    
+    # NDWI = (Green – NIR)/(Green + NIR)
+    def NDWI_func(self):
+        NDWI = self.image.expression(
+            '(Green - NIR) / (Green + NIR)', {
+                'Green': self.image.select('green'),
+                'NIR': self.image.select('nir')
+            }
+        ).rename('ndwi')
+        return NDWI
+    
+    # MSAVI2  https://developers.planet.com/docs/basemaps/tile-services/indices/
+    def MSAVI2_func(self):
+        MSAVI2 = self.image.expression(
+            '((2*nir +1) - ((2* nir +1)**2-(8*(nir-red)))**0.5)/2', {
+                'nir': self.image.select('nir'),
+                'red': self.image.select('red')
+            }
+        ).rename('msavi2')
+        return MSAVI2
+    
+    # Define the MTVI2 calculation function
+    def MTVI2_func(self):
+        mtvi2 = self.image.expression(
+            '1.5 * ((1.2 * (NIR - Green) - 2.5 * (Red - Green)) / '
+            'sqrt((2 * NIR + 1) ** 2 - (6 * NIR - 5 * sqrt(Red)) - 0.5))', {
+                'NIR': self.image.select('nir'),
+                'Red': self.image.select('red'),
+                'Green': self.image.select('green')
+            }
+        ).rename('MTVI2')
+        return mtvi2
+    
+    # Define the NDVI calculation function
+    def NDVI_func(self):
+        ndvi = self.image.expression(
+            '(NIR - Red) / (NIR + Red)', {
+                'NIR': self.image.select('nir'),
+                'Red': self.image.select('red')
+            }
+        ).rename('NDVI')
+        return ndvi
+
+
+    # Visual Atmosphere Resistance Index (VARI)
+    def VARI_func(self):
+        vari = self.image.expression(
+            '(Green - Red) / (Green + Red - Blue)', {
+                'Green': self.image.select('green'),
+                'Red': self.image.select('red'),
+                'Blue': self.image.select('blue')
+            }
+        ).rename('VARI')
+        return vari

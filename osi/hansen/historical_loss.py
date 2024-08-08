@@ -7,6 +7,9 @@ class HansenHistorical:
         self.pixel_number = config['pixel_number']
         self.year_start_loss = config['year_start_loss']
         self.tree_cover_forest = config['tree_cover_forest']
+        # get the date based on the input list
+        self.date_start_end = config['date_start_end']
+        self.end_year_hansen = int(self.date_start_end[1][2:4])
         self.AOI = config['AOI']
     def initiate_tcl(self):
         # hansen - updated version - global data
@@ -50,7 +53,8 @@ class HansenHistorical:
         # adapted from https://developers.google.com/earth-engine/tutorials/community/forest-cover-loss-estimation
         
         treeLossYear = gfc.select(['lossyear'])
-        treeLoss = treeLossYear.gte(self.year_start_loss).selfMask() # tree loss in e.g., year > 2012 ####SHOULD CHANGE TO RECENT YEAR for the '12' number
+         # tree loss in e.g., year > 2012 ####SHOULD CHANGE TO RECENT YEAR for the '12' number and now we add less than year end if analysis is back date under the hansen updated data
+        treeLoss = treeLossYear.gte(self.year_start_loss).And(treeLossYear.lte(self.end_year_hansen)).selfMask()
         #Select the tree loss within the derived tree cover
         #(>= canopy cover and area requirements). THIS ONE ALREADY MASK TCL IN FOREST AREA
         treecoverLoss = minArea.And(treeLoss).rename(f'lossfrom_{self.year_start_loss}').selfMask()

@@ -1,5 +1,5 @@
 import ee
-from gee_lib.osi.spectral_indices.spectral_analysis import SpectralAnalysis
+from ..spectral_indices.spectral_analysis import SpectralAnalysis
 
 #############################
 ## Forest Canopy Density Mapping
