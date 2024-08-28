@@ -200,11 +200,14 @@ class AssignClassZone:
             '8': '#ff8a1d',
             '9': '#1900ff',
             '10': '#e6e6fa',
-            '11': '#FFFFFF'
+            '11': '#FFFFFF',
+            '12': '#4B0082',
+            '13': '#8B4513',
+            '14': '#DAA520'
         }
         
         # Define the order of class IDs only for FCD
-        class_ids_order_FCD = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+        class_ids_order_FCD = ['1', '2', '3', '4', '5', '6', '7', '8', '9','10','11','12','13','14']
         
         # Create a list of colors in the correct order
         colors_in_order_FCD = [class_name_map_color[class_id] for class_id in class_ids_order_FCD]
@@ -212,7 +215,7 @@ class AssignClassZone:
         # Set the min and max values based on your class IDs
         vis_params_FCD = {
             'min': 1,
-            'max': 9,
+            'max': 14,
             'palette': colors_in_order_FCD
         }
 
@@ -226,8 +229,11 @@ class AssignClassZone:
             '7': 'Regrowth Low Density Forest from deforested (historical)',
             '8': 'Historical deforestation (10 years rule)',
             '9': 'Water Body',
-            '10':'Plantation_No_GO-Zone',
-            '11': 'Infrastructure_No_GO-Zone',
+            '10':'Plantation_No_Go-Zone',
+            '11': 'Infrastructure_No_Go-Zone',
+            '12': 'Oil_palm_No_Go-Zone',
+            '13': 'Cropland_Go-Zone',
+            '14': 'Paddy_irrigated_Go-Zone',
         }
 
         legend_class = {k:{'name':v, 'color':class_name_map_color[k]} for k,v in class_name_map.items()}

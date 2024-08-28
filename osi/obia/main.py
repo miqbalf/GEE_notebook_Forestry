@@ -23,14 +23,31 @@ class OBIASegmentation:
         crs='EPSG:4326',
         scale=self.pca_scale)
 
+        # only means number of these bands in clusters
+        mean_cluster_values = snic.select([
+        'red_mean',
+        'green_mean',
+        'blue_mean',
+        'nir_mean',
+        'ndwi_mean',
+        'msavi2_mean',
+        'MTVI2_mean',
+        'NDVI_mean',
+        'VARI_mean',
+        'FCD1_1_mean',
+        'FCD2_1_mean',
+        ])
+
         # Map.addLayer(vectors, {}, 'snic-vector')
 
         # Pull out the clusters layer, each cluster has a uniform value
         clusters = snic.select('clusters')
-        return clusters
+        return { 'clusters':clusters,
+                'mean_cluster_values':mean_cluster_values }
     
     def summarize_cluster(self, is_include_std = False):
-        clusters = self.SNIC_cluster()
+        clusters = self.SNIC_cluster()['clusters']
+        mean_cluster_values = self.SNIC_cluster()['mean_cluster_values']
         # Compute the area of each cluster.
         area_cluster = ee.Image.pixelArea().addBands(clusters).reduceConnectedComponents(
             reducer=ee.Reducer.sum(),
@@ -61,7 +78,7 @@ class OBIASegmentation:
 
         ## putting all together the info of additional stat and object info (perimeter, size, width, height)
         object_properties_image = ee.Image.cat([
-           
+            mean_cluster_values,
             area_cluster,
             perimeter,
             width,

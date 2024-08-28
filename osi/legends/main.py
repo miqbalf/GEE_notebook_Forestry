@@ -78,7 +78,7 @@ class LegendsBuilder:
             )
             return [patch]
 
-    def create_legend(self):
+    def create_legend(self, title_legend='None'):
         fig, ax = plt.subplots(figsize=(6, 6))
 
         patches = [mpatches.Patch(edgecolor='black', linewidth=0.5, facecolor=item["color"], label=item["label"]) for item in self.legend_items]
@@ -88,7 +88,7 @@ class LegendsBuilder:
             loc='center left', 
             frameon=False, 
             fontsize='medium', 
-            title='Legend',
+            title=f'Legend {title_legend}',
             handler_map={mpatches.Patch: self.CustomHandlerRectangle()},
             borderpad=2, 
             labelspacing=1, 

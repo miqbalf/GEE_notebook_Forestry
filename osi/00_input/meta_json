@@ -1,0 +1,46 @@
+//#example of json and its description. Remove the comment later if you want to use the json, and edit the values accordingly!
+
+{
+    //# INPUT RECOMMENDED TO EDIT
+    "module_path": "C:/Users/q_bal/Documents/Github/GEE_notebook_Forestry", //#edit this with your own library
+    "I_satellite":"Planet", // option will be Planet, or 'Sentinel' or 'Landsat',
+    "pca_scaling":1, //# 1 meaning that 1 x pixel size of spatial resolution e.g., Planet Labs 1 x 5, Sentinel 1 x 10, Landsat 1 x 30
+    "tileScale" :1, // # increase this if user memory limit occur, see: https://gis.stackexchange.com/questions/373250/understanding-tilescale-in-earth-engine
+    "AOI_path": "G:/Shared drives/TREEO BD Supply/satellite_verification/PPP/LPHD Belaban Rayak.shp", //path to the AOI
+    "OID_field_name": "id", //  #IMPORTANT TO CHECK OID based on the column ID //#for area id in shapefile that identified the data, and will converted into raster
+    "input_training": "G:/Shared drives/TREEO BD Supply/satellite_verification/PPP/traning_point_merged_belaban.shp", //path to the training sample for ML
+    "algo_ml_selected": "rf", //we will make it default for random forest, and later we will change this in the code and edited to json directly later
+    "date_start_end":["2024-5-1","2024-5-31"], // start date and end_date
+    "project_name" : "belaban_rayak",
+    "super_pixel_size": 3, # the SNIC segmentation, superpixel
+
+    "region": "asia", ////# for planet labs image # choose between africa or asia
+
+    "pixel_number": 3, //#define minimum mapping unit classified as forest, 1 pixel for landsat 30mx30, 3 pixel is forest ~> 0.27 Ha
+    "year_start_loss": 14, //#define start year to track as 10 years rule (e.g., 2012 to 2022 (track 10 years rule), hence 12. format= 00->2000, 12->2012)
+    "tree_cover_forest": 30, //# this will be in percent, let's say, forest is > 30% if you put 30,
+    //////////////////////////////////////////////////////////////////////
+
+
+    // some default
+    //# output Band Names
+    "band_name_image": "Class",
+    "cloud_cover_threshold" : 40, //# cloud cover threshold, max per image, in image collection, only for landsat and sentinel
+    "crs_input" : "EPSG:4326",
+    "IsThermal": false,
+
+
+
+    /// old method - FCD
+    "fcd_selected": 21, // selected combination of the pca of FCD, we will use ML anyway, but just to crosscheck
+    //## FCD Threshold
+    "high_forest" : 75,
+    "yrf_forest" : 55,
+    "shrub_grass" : 45,
+    "open_land" : 30,
+    //#NDWI water limit FCD  method only
+    "ndwi_hi_sentinel" : 0.05, // # for Sentinel
+    "ndwi_hi_landsat" : 0.1,  //# for landsat
+    "ndwi_hi_planet" : -0.2 // # for Planet Labs
+
+}
