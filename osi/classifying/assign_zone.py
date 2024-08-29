@@ -1,5 +1,6 @@
 import ee
 from ..spectral_indices.utils import assigning_band
+from .utils import add_classes, add_images, select_band_if_exists, unmasked_helper
 
 class AssignClassZone:
     def __init__(self, config, *args, **kwargs):
@@ -24,7 +25,57 @@ class AssignClassZone:
         self.AOI_img = config['AOI_img']
         self.AOI = config['AOI']
         self.band_name_image = config['band_name_image']
-    
+
+        class_name_map_color = {
+            '1': '#ffe3b3',
+            '2': '#ffff33',
+            '3': '#F89696',
+            '4': '#09ab0c',
+            '5': '#83ff5a',
+            '6': '#ff0004',
+            '7': '#ff0abe',
+            '8': '#ff8a1d',
+            '9': '#1900ff',
+            '10': '#e6e6fa',
+            '11': '#FFFFFF',
+            '12': '#4B0082',
+            '13': '#8B4513',
+            '14': '#DAA520'
+        }
+        
+        # Define the order of class IDs only for FCD
+        class_ids_order_FCD = ['1', '2', '3', '4', '5', '6', '7', '8', '9','10','11','12','13','14']
+        
+        # Create a list of colors in the correct order
+        colors_in_order_FCD = [class_name_map_color[class_id] for class_id in class_ids_order_FCD]
+        
+        # Set the min and max values based on your class IDs
+        self.vis_param_merged = {
+            'min': 1,
+            'max': 14,
+            'palette': colors_in_order_FCD
+        }
+
+        class_name_map = {
+            '1': 'Shrubland_Go-Zone',
+            '2': 'Grassland_Go-Zone',
+            '3': 'Openland_Go-Zone',
+            '4': 'High density Forest',
+            '5': 'Low - Medium density Forest',
+            '6': 'Regrowth High Density Forest from deforested (historical)',
+            '7': 'Regrowth Low Density Forest from deforested (historical)',
+            '8': 'Historical deforestation (10 years rule)',
+            '9': 'Water Body',
+            '10':'Plantation_No_Go-Zone',
+            '11': 'Infrastructure_No_Go-Zone',
+            '12': 'Oil_palm_No_Go-Zone',
+            '13': 'Cropland_Go-Zone',
+            '14': 'Paddy_irrigated_Go-Zone',
+        }
+
+        self.legend_class = {k:{'name':v, 'color':class_name_map_color[k]} for k,v in class_name_map.items()}
+
+       
     def assigning_fcd_class(self, gfc, minLoss):
         # Starting to create threshold for labeling
         WaterMask = gfc.select(['datamask']).rename('datamask').eq(2)
@@ -79,7 +130,7 @@ class AssignClassZone:
         tenYearsRule = unmaskedHiFL.And(minLoss)
         #Map.addLayer(tenYearsRule,{'palette': '#FFA500'},"10 Years Rule - not OK")
         # assign the Class into no. 8 - Final Result
-        tenyrule_edited = ee.Image(assigning_band(self.band_name_image,8,tenYearsRule)) #tenyears rule not pass - 3
+        tenyrule_edited = ee.Image(assigning_band(self.band_name_image,8,tenYearsRule)) #tenyears rule not pass
         ###############################################
     
         # Use hansen data instead - better result, no need to adjust threshold and water body not change for long time
@@ -151,13 +202,6 @@ class AssignClassZone:
         
         empty_image = ee.Image.constant(0).rename(self.band_name_image)
 
-        def add_classes(image, empty):
-            # Cast the image to Int32 to handle NaN and null values
-            image = image.unmask(0).toInt32()
-            # Set a conditional statement to retain existing class values if non-zero, otherwise use the new class value
-            merged_image = empty.where(empty.neq(0), empty).where(image.neq(0), image)
-            return merged_image
-
         # Create a list of images excluding the 'empty_image'
         image_list = [
             shrubland_gozone, #1
@@ -177,10 +221,6 @@ class AssignClassZone:
         # Apply the add_classes function to each image in the collection while merging them into the 'empty_image'
         result_collection = image_collection.map(lambda image: add_classes(image, empty_image))
 
-        # Create a function to add two images element-wise
-        def add_images(img1, img2):
-            return ee.Image(img1).add(img2)
-
         # Merge all the images in the result_collection using ee.ImageCollection.iterate()
         merged_image = ee.Image(result_collection.iterate(add_images, empty_image))
         
@@ -189,60 +229,50 @@ class AssignClassZone:
         merged_image = merged_image.clip(self.AOI)
         print('finish processing, merging all the zone into one image')
 
-        class_name_map_color = {
-            '1': '#ffe3b3',
-            '2': '#ffff33',
-            '3': '#F89696',
-            '4': '#09ab0c',
-            '5': '#83ff5a',
-            '6': '#ff0004',
-            '7': '#ff0abe',
-            '8': '#ff8a1d',
-            '9': '#1900ff',
-            '10': '#e6e6fa',
-            '11': '#FFFFFF',
-            '12': '#4B0082',
-            '13': '#8B4513',
-            '14': '#DAA520'
-        }
-        
-        # Define the order of class IDs only for FCD
-        class_ids_order_FCD = ['1', '2', '3', '4', '5', '6', '7', '8', '9','10','11','12','13','14']
-        
-        # Create a list of colors in the correct order
-        colors_in_order_FCD = [class_name_map_color[class_id] for class_id in class_ids_order_FCD]
-        
-        # Set the min and max values based on your class IDs
-        vis_params_FCD = {
-            'min': 1,
-            'max': 14,
-            'palette': colors_in_order_FCD
-        }
+        # NOW THIS IS FOR LC, JUST DISPLAYING ONLY AND COMPARING THE RESULT LATER
+        #FCD LC for confusing matrix
+        forest_lc_fcd = AllForest.multiply(0).add(1).rename('classification').select(['classification'])
+        shrub_lc_fcd = Shrubland.multiply(0).add(2).rename('classification').select(['classification'])
+        grass_lc_fcd = Grassland.multiply(0).add(3).rename('classification').select(['classification'])
+        openland_lc_fcd = Openland.multiply(0).add(4).rename('classification').select(['classification'])
+        water_lc_fcd = Water_Un_plantable.multiply(0).add(5).rename('classification').select(['classification'])
 
-        class_name_map = {
-            '1': 'Shrubland_Go-Zone',
-            '2': 'Grassland_Go-Zone',
-            '3': 'Openland_Go-Zone',
-            '4': 'High density Forest',
-            '5': 'Low - Medium density Forest',
-            '6': 'Regrowth High Density Forest from deforested (historical)',
-            '7': 'Regrowth Low Density Forest from deforested (historical)',
-            '8': 'Historical deforestation (10 years rule)',
-            '9': 'Water Body',
-            '10':'Plantation_No_Go-Zone',
-            '11': 'Infrastructure_No_Go-Zone',
-            '12': 'Oil_palm_No_Go-Zone',
-            '13': 'Cropland_Go-Zone',
-            '14': 'Paddy_irrigated_Go-Zone',
-        }
+        # Create a list of images excluding the 'empty_image'
+        image_list_lc_fcd = [
+            forest_lc_fcd,
+            shrub_lc_fcd,
+            grass_lc_fcd,
+            openland_lc_fcd,
+            water_lc_fcd,
+        ]
 
-        legend_class = {k:{'name':v, 'color':class_name_map_color[k]} for k,v in class_name_map.items()}
-        
+        # Create an ImageCollection from the list of images
+        image_collection_fcd_lc = ee.ImageCollection(image_list_lc_fcd)
 
+        empty_image_lc = ee.Image.constant(0).rename('Class')
+
+        # Apply the add_classes function to each image in the collection while merging them into the 'empty_image'
+        result_collection_fcd_lc = image_collection_fcd_lc.map(lambda image: add_classes(image, empty_image_lc))
+
+        # Merge all the images in the result_collection using ee.ImageCollection.iterate()
+        fcd_class_lc_image = ee.Image(result_collection_fcd_lc.iterate(add_images, empty_image))
+
+        # Cast the merged image to Int32 and set the original Class band name
+        fcd_class_lc_image = fcd_class_lc_image.toInt32().rename('classification')
+        fcd_class_lc_image = fcd_class_lc_image.clip(self.AOI)
+
+        pallette_class_segment_lc = ['#83ff5a',
+                                    '#ffe3b3',
+                                    '#ffff33',
+                                    '#f89696',
+                                    '#1900ff',
+                                    ]
+        vis_param_segment_lc = {'min': 1, 'max': 5, 'palette': pallette_class_segment_lc}
+               
         return {'all_zone': merged_image,
-                'vis_param_merged': vis_params_FCD,
-                'class_name_map': class_name_map,
-                'legend_class': legend_class,
+                # 'vis_param_merged': vis_params_FCD,
+                # 'class_name_map': class_name_map,
+                # 'legend_class': legend_class,
                 'openland_gozone': openland_gozone,
                 'grassland_gozone': grassland_gozone,
                 'shrubland_gozone': shrubland_gozone,
@@ -258,4 +288,200 @@ class AssignClassZone:
                 'Shrubland':Shrubland,
                 'Grassland':Grassland,
                 'Openland':Openland,
+                'fcd_class_lc_image':fcd_class_lc_image,
+                'vis_param_segment_lc':vis_param_segment_lc,
+
+                # for the overlay of historical hansen and ML
+                'HighForestDense':HighForestDense, # to breakdown high density forest and med. density forest
                 }
+    
+    def assign_zone_ml(self, lc_image_ml, minLoss, AOI_img, HighForestDense):
+        
+        forest_masked = lc_image_ml.updateMask(lc_image_ml.select(['classification']).eq(1))
+        shrub_masked = lc_image_ml.updateMask(lc_image_ml.select(['classification']).eq(2))
+        grass_masked = lc_image_ml.updateMask(lc_image_ml.select(['classification']).eq(3))
+        openland_masked = lc_image_ml.updateMask(lc_image_ml.select(['classification']).eq(4))
+        water_masked = lc_image_ml.updateMask(lc_image_ml.select(['classification']).eq(5))
+        plantation_masked = lc_image_ml.updateMask(lc_image_ml.select(['classification']).eq(6))
+        infrastructure_masked = lc_image_ml.updateMask(lc_image_ml.select(['classification']).eq(7))
+        oil_palm_masked = lc_image_ml.updateMask(lc_image_ml.select(['classification']).eq(8))
+        cropland_masked = lc_image_ml.updateMask(lc_image_ml.select(['classification']).eq(9))
+        paddy_irigated_masked = lc_image_ml.updateMask(lc_image_ml.select(['classification']).eq(14))
+
+        #sub-forest considering the fcd threshold of high density forest, regardless the ML method
+        # HighForestDense = FCD.mask(FCD.gte(high_forest).And(unmaskedWaterAOI))
+        unmaskedHighForest = AOI_img.unmask().updateMask(HighForestDense.mask().Not()).clip(self.AOI)
+        yrf_forest = forest_masked.And(unmaskedHighForest)
+        high_forest_fix = HighForestDense.And(forest_masked)
+
+
+        ######### general go-zone
+        ## Starting to retrieve from 10 TCL unmask
+        unmaskedLoss = unmasked_helper(minLoss, AOI_img, self.AOI)
+        # Unmasked Forest - the result is all the area outside of forest_masked (Total all forest), and now in no forest
+        # maskHiF = forest_masked.mask()
+        # maskHiF_inverted = maskHiF.Not()
+        # unmaskedHiF = AOI_img.unmask().updateMask(maskHiF_inverted).clip(AOI)
+        unmaskedHiF = unmasked_helper(forest_masked, AOI_img, self.AOI)
+        # unmasked water
+        waterinAOI = water_masked
+        unmaskedWaterAOI = unmasked_helper(water_masked, AOI_img, self.AOI)
+        # unmasked grey infrastructure
+        unmasked_infrastructure = unmasked_helper(infrastructure_masked, AOI_img, self.AOI)
+        # unmasked oil palm
+        unmasked_oilpalm = unmasked_helper(oil_palm_masked, AOI_img, self.AOI)
+
+        goZone = unmaskedLoss.And(unmaskedHiF).And(unmaskedWaterAOI).And(unmasked_infrastructure).And(unmasked_oilpalm)
+        goZone_edited = ee.Image(assigning_band(self.config['band_name_image'],999,goZone))
+
+        # forest category and no 10 years rule
+        highBaselineF = forest_masked.And(unmaskedLoss)
+        highf_edited = ee.Image(assigning_band(self.config['band_name_image'],111,highBaselineF))
+
+        ####### Get the overlay information of HighBaseline and Tree Cover Loss (Hansen), e.g., Young Regenerating Forest
+        HiForestAndLoss = AOI_img.And(forest_masked.And(minLoss)) #minLoss is the actual TCL without overlaying with Sentinel
+        tenyrfl_edited = ee.Image(assigning_band(self.band_name_image,888,HiForestAndLoss))
+        # arc_ops.adding_ee_to_arcgisPro(tenyrfl_edited.randomVisualizer(),{},'tenyrlfl_edited')
+
+        # Create a helper mask indicating where the smaller areas maskhiFL, distinguish only the highbaseline and TCL (mask) and assign mask as 1
+        # Unmask the bigger raster in the areas to get the pixel value for area 'outside' HiFL (High Baseline and Forest Loss)
+        unmaskedHiFL = unmasked_helper(HiForestAndLoss, AOI_img, self.AOI)
+        #outcome result for 10 years data only that is not overlay with high baseline (Forest) unmaskedHiFL is Area that is not Forest Sentinel############
+        tenYearsRule = unmaskedHiFL.And(minLoss)
+        tenyrule_edited = ee.Image(assigning_band(self.band_name_image,8,tenYearsRule))
+        # arc_ops.adding_ee_to_arcgisPro(tenyrule_edited.randomVisualizer(),{},'tenyrule_edited')
+
+        #re-acquired the same method for 10 years rule data (GFW or Hansen data (pixel 30m))
+        #assigning to zones:
+        ## GO ZONE
+        Shrubland_gozone = shrub_masked.And(goZone_edited).select(['pixel'])
+        Shrubland_gozone = ee.Image(assigning_band(self.config['band_name_image'],1,Shrubland_gozone))
+
+        Grassland_gozone = grass_masked.And(goZone_edited).select(['pixel'])
+        Grassland_gozone = ee.Image(assigning_band(self.config['band_name_image'],2,Grassland_gozone))
+
+        Openland_gozone = openland_masked.And(goZone_edited).select(['pixel'])
+        Openland_gozone = ee.Image(assigning_band(self.config['band_name_image'],3,Openland_gozone))
+
+        Openland_gozone = openland_masked.And(goZone_edited).select(['pixel'])
+        Openland_gozone = ee.Image(assigning_band(self.config['band_name_image'],3,Openland_gozone))
+
+        Cropland_Gozone = cropland_masked.And(goZone_edited).select(['pixel'])
+        Cropland_Gozone = ee.Image(assigning_band(self.config['band_name_image'],13,Cropland_Gozone))
+
+        Paddy_Gozone = paddy_irigated_masked.And(goZone_edited).select(['pixel'])
+        Paddy_Gozone = ee.Image(assigning_band(self.config['band_name_image'],14,Paddy_Gozone))
+
+        ## NO GO additional
+        Plantation_noGozone = plantation_masked.And(goZone_edited).select(['pixel'])
+        Plantation_noGozone = ee.Image(assigning_band(self.config['band_name_image'],10,Plantation_noGozone))
+
+        Infrastructure_noGozone = infrastructure_masked.And(goZone_edited).select(['pixel'])
+        Infrastructure_noGozone = ee.Image(assigning_band(self.config['band_name_image'],11,Infrastructure_noGozone))
+
+        Oilpalm_noGozone = oil_palm_masked.And(goZone_edited).select(['pixel'])
+        Oilpalm_noGozone = ee.Image(assigning_band(self.config['band_name_image'],12,Oilpalm_noGozone))
+
+        # highbaseline
+        # HighForestDense = FCD.mask(FCD.gte(high_forest).And(unmaskedWaterAOI))
+        HighForestDense_no10yrs = HighForestDense.And(highf_edited).select(['pixel'])
+        HighForestDense_no10yrs = ee.Image(assigning_band(self.config['band_name_image'],4,HighForestDense_no10yrs))
+
+        #YRFForestDense = FCD.mask(FCD.gte(yrf_forest).And(unmaskedWaterAOI).And(FCD.lt(high_forest)))
+        YRFForestDense_no10yrs = yrf_forest.And(highf_edited).select(['pixel'])
+        YRFForestDense_no10yrs = ee.Image(assigning_band(self.config['band_name_image'],5,YRFForestDense_no10yrs))
+        ##########################
+
+        # high baseline regrowth
+        HighForestDense_10yrs = HighForestDense.And(tenyrfl_edited).select(['pixel'])
+        HighForestDense_10yrs = ee.Image(assigning_band(self.config['band_name_image'],6,HighForestDense_10yrs))
+
+        YRFForestDense_10yrs = yrf_forest.And(tenyrfl_edited).select(['pixel'])
+        YRFForestDense_10yrs = ee.Image(assigning_band(self.config['band_name_image'],7,YRFForestDense_10yrs))
+        ############################
+
+        # 10 years rule, straight forward
+        # tenyrule_edited = ee.Image(assigning_band(band_name_image,8,tenYearsRule)) #tenyears rule not pass - 8  # already hard-coded set in the previous function
+        No_pass_historical_years_rule = tenyrule_edited.select([self.config['band_name_image']])
+
+        # Filter the images based on the 'Class' band, and add them one by one on map canvas!!!!!!!!!!!!!!!!!!!! # just comment this Map.addLayer if you want not to display one by one
+        openland_gozone = Openland_gozone.select([self.config['band_name_image']])
+        # Map.addLayer(openland_gozone,{'palette': ['#F89696']},'Open land - Go Zone')
+
+        grassland_gozone = Grassland_gozone.select([self.config['band_name_image']])
+        # Map.addLayer(grassland_gozone,{'palette': ['#ffff33']},'Grass land - Go Zone')
+
+        shrubland_gozone = Shrubland_gozone.select([self.config['band_name_image']])
+        # Map.addLayer(shrubland_gozone,{'palette': ['#ffe3b3']},'Shrub land - Go Zone')
+
+        yrf_forest_dense_no10yrs = YRFForestDense_no10yrs.select([self.config['band_name_image']])
+        # Map.addLayer(yrf_forest_dense_no10yrs,{'palette': ['#83ff5a']},'Low-Med Forest')
+
+        high_forest_dense_no10yrs = HighForestDense_no10yrs.select(self.config['band_name_image'])
+        # Map.addLayer(high_forest_dense_no10yrs,{'palette': ['#09ab0c']},'High- Density Forest')
+
+        yrf_forest_dense_10yrs = YRFForestDense_10yrs.select([self.config['band_name_image']])
+        # Map.addLayer(yrf_forest_dense_10yrs,{'palette': ['#ff0abe']},'Re-growth Low-Med Density Forest')
+
+        high_forest_dense_10yrs = HighForestDense_10yrs.select([self.config['band_name_image']])
+        # Map.addLayer(high_forest_dense_10yrs,{'palette': ['#ff0004']},'Re-growth High Density Forest')
+
+        No_pass_historical_years_rule = tenyrule_edited.select([self.config['band_name_image']])
+        # Map.addLayer(No_pass_historical_years_rule,{'palette': ['#ff8a1d']},'Historical deforestation no regrowth (3 or 10 years)')
+
+        # since there are case water from mining (overlap 10 years rule with water), we should unmasked first
+        unmasked10years = AOI_img.unmask().updateMask(No_pass_historical_years_rule.mask().Not()).clip(self.AOI)
+        water_no_10yr = waterinAOI.And(unmasked10years).And(unmasked10years)
+        Water_Un_plantable = ee.Image(assigning_band(self.config['band_name_image'],9,water_no_10yr)).select([self.config['band_name_image']])
+        # such a headache to forgetting things that to merge, need to be in Class and also need to be selected
+
+        # Map.addLayer(Water_Un_plantable,{'palette': ['#1900ff']},'Water body (unplantable)')
+
+        # Example band name to check
+        band_name = self.config['band_name_image']
+        
+        # Select images if the band exists
+        plantation_noGozone = select_band_if_exists(Plantation_noGozone, band_name)
+        infrastructure_noGozone = select_band_if_exists(Infrastructure_noGozone, band_name)
+        oilpalm_noGozone = select_band_if_exists(Oilpalm_noGozone, band_name)
+        cropland_Gozone = select_band_if_exists(Cropland_Gozone, band_name)
+        paddy_Gozone = select_band_if_exists(Paddy_Gozone, band_name)
+
+        empty_image = ee.Image.constant(0).rename(self.config['band_name_image'])
+
+        image_list_result = [
+            openland_gozone,
+            grassland_gozone,
+            shrubland_gozone,
+            high_forest_dense_no10yrs,
+            yrf_forest_dense_no10yrs,
+            high_forest_dense_10yrs,
+            yrf_forest_dense_10yrs,
+            No_pass_historical_years_rule,
+            Water_Un_plantable,
+            plantation_noGozone,
+            infrastructure_noGozone,
+            oilpalm_noGozone,
+            cropland_Gozone,
+            paddy_Gozone
+
+        ]
+
+        # Remove None entries from the list
+        image_list_result = [img for img in image_list_result if img is not None]
+
+        # Create an ImageCollection from the list of images
+        image_collection_result = ee.ImageCollection(image_list_result)
+
+        # Apply the add_classes function to each image in the collection while merging them into the 'empty_image'
+        result_collection_with_class = image_collection_result.map(lambda image: add_classes(image, empty_image))
+
+        # Merge all the images in the result_collection using ee.ImageCollection.iterate()
+        merged_image_result = ee.Image(result_collection_with_class.iterate(add_images, empty_image))
+
+        # Cast the merged image to Int32 and set the original Class band name
+        merged_image_result = merged_image_result.toInt32().rename(self.config['band_name_image'])
+        merged_image_result = merged_image_result.clip(self.AOI)
+        final_zone_map = merged_image_result
+
+        return final_zone_map

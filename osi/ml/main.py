@@ -168,7 +168,7 @@ class LandcoverML:
                             )
 
         # Classify the segments using the trained classifier
-        classified_segments_rf_stat = self.cluster_properties.classify(classifier_rf)
+        classified_image_rf = self.cluster_properties.classify(classifier_rf)
 
         ############# SVM
         # Train a Support Vector Machine (SVM) classifier
@@ -208,7 +208,7 @@ class LandcoverML:
         return {'training_points':training_points,
                 'validation_points': validation_points,
                 'classified_image_basedpixel':classified_image_basedpixel,
-                'classified_segments_rf_stat': classified_segments_rf_stat,
+                'classified_image_rf': classified_image_rf,
                 'classified_image_svm':classified_image_svm,
                 'classified_image_gbm':classified_image_gbm,
                 'classified_image_cart':classified_image_cart
