@@ -1,7 +1,7 @@
 import ee
 import geemap
 from ..spectral_indices.utils import normalization_100
-from ..exporting_ee.main import exporting_to_ee
+from ..exporting_ee.main import exporting_from_ee
 import pandas as pd
 import numpy as np
 import os
