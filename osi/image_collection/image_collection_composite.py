@@ -110,6 +110,9 @@ class ImageCollectionComposite:
         elif self.region == 'africa':
             nicfi_col = ee.ImageCollection("projects/planet-nicfi/assets/basemaps/africa")
 
+        elif self.region == 'america':
+            nicfi_col = ee.ImageCollection("projects/planet-nicfi/assets/basemaps/americas")
+
         filteredNicfi = nicfi_col.filterDate(self.start_date, self.end_date) \
                      .filterBounds(self.AOI)
 
