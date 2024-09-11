@@ -1,0 +1,39 @@
+{
+
+    "module_path": "C:/Users/q_bal/Documents/Github/GEE_notebook_Forestry/", 
+    "I_satellite":"Planet", 
+    "pca_scaling":1, 
+    "tileScale" :1, 
+    "AOI_path": "G:/Shared drives/TREEO BD Supply/satellite_verification/Colombia/aoi_colombia.shp", 
+    "OID_field_name": "id", 
+    "input_training": "G:/Shared drives/TREEO BD Supply/satellite_verification/Colombia/trainingpoint_matarredonda.shp", 
+    "algo_ml_selected": "gbm", 
+    "date_start_end":["2024-8-1","2024-8-31"], 
+    "project_name" : "project_colombia",
+    "super_pixel_size": 3, 
+
+    "region": "america", 
+
+    "pixel_number": 3, 
+    "year_start_loss": 14, 
+    "tree_cover_forest": 30, 
+
+
+    
+    "band_name_image": "Class",
+    "cloud_cover_threshold" : 40, 
+    "crs_input" : "EPSG:4326",
+    "IsThermal": false,
+
+   
+    "fcd_selected": 21, 
+    "high_forest" : 75,
+    "yrf_forest" : 55,
+    "shrub_grass" : 45,
+    "open_land" : 30,
+    
+    "ndwi_hi_sentinel" : 0.05, 
+    "ndwi_hi_landsat" : 0.1,  
+    "ndwi_hi_planet" : -0.2 
+
+}
