@@ -1,0 +1,38 @@
+Locate Conda in arcgis pro usually:
+C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\conda.exe
+
+
+Temporary add path:
+$env:PATH += ";C:\Program Files\ArcGIS\Pro\bin\Python\Scripts;C:\Program Files\ArcGIS\Pro\bin\Python\envs\arcgispro-py3"
+
+Step 3: Permanently Add Conda to PATH
+To avoid doing this every time, add the paths permanently:
+
+- Press Win + S and search for "Environment Variables."
+- Under "System Properties," click Environment Variables.
+- Find the Path variable under System Variables, and click Edit.
+- Add these two paths:
+    C:\Program Files\ArcGIS\Pro\bin\Python\Scripts
+    C:\Program Files\ArcGIS\Pro\bin\Python\envs\arcgispro-py3
+- Click OK to save changes and restart PowerShell.
+- Signout windows
+
+without adding: & "C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\conda.exe" env list
+
+
+Now to clone:
+conda create --name <your_conda_name> --clone arcgispro-py3
+
+check:
+conda env list
+
+activate:
+- conda init
+- restart PowerShell
+- conda activate <your_conda_name>
+* if it does not work in powershell, use cmd instead
+
+
+
+
+

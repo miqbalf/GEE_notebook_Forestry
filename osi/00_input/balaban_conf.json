@@ -1,11 +1,10 @@
 {
-    "module_path": "C:/Users/q_bal/Documents/Github/GEE_notebook_Forestry",
     "I_satellite":"Planet",
     "pca_scaling":1, 
     "tileScale" :1, 
-    "AOI_path": "G:/Shared drives/TREEO BD Supply/satellite_verification/PPP/LPHD Belaban Rayak.shp", 
+    "AOI_path": "Z:/Shared drives/TREEO BD Supply/satellite_verification/PPP/LPHD Belaban Rayak.shp", 
     "OID_field_name": "id", 
-    "input_training": "G:/Shared drives/TREEO BD Supply/satellite_verification/PPP/traning_point_merged_belaban.shp", 
+    "input_training": "Z:/Shared drives/TREEO BD Supply/satellite_verification/PPP/traning_point_merged_belaban.shp", 
     "algo_ml_selected": "gbm",
     "date_start_end":["2024-5-1","2024-5-31"], 
     "project_name" : "belaban_rayak",

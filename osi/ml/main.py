@@ -214,7 +214,7 @@ class LandcoverML:
                 'classified_image_cart':classified_image_cart
                 }
     
-    def matrix_confusion(self, image_class, validation_points, ml_algorithm):
+    def matrix_confusion(self, image_class, validation_points, ml_algorithm, output_dir):
         sample_validation_image = image_class.sampleRegions(
             collection=validation_points,
             properties=['code_lu'],
@@ -241,10 +241,10 @@ class LandcoverML:
         for line in output_lines:
             print(line)
 
-        output_dir = os.path.join(self.config['module_path'],"osi","01_output")
+        #output_dir = os.path.join(self.config['module_path'],"osi","01_output")
 
         # Write to a text file in 01_output and with the file name confusion_matrix_output_{self.config["project_name"]}.txt'
-        with open(os.path.join(output_dir,f'conf_acc_{self.config["project_name"]}.txt'), 'a') as f:
+        with open(os.path.join(output_dir,f'conf_acc_{self.config["project_module_name"]}.txt'), 'a') as f:
             for line in output_lines:
                 f.write(line + '\n')
     
