@@ -16,10 +16,12 @@ class LandcoverML:
         self.AOI = config['AOI']
         self.num_class=num_class
         self.project_name = config['project_name']
-        self.input_training = config['input_training']
+        self.create_sampling = config.get('create_training_gee', False)
+        if self.create_sampling == True:
+            self.input_training = config.get('location_sample_created')
+        else:
+            self.input_training = config['input_training']
         self.config = config
-        
-
 
         ### normalized all the bands
         # Create an empty image to start with
