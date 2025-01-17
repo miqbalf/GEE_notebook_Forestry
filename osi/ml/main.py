@@ -242,56 +242,70 @@ class LandcoverML:
         for line in output_lines:
             print(line)
 
-        output_dir = os.path.join(root_osi_folder,"01_output")
+        # output_dir = os.path.join(root_osi_folder,"01_output")
+        output_dir = self.config['output_dir'] # change to the json info
 
         # Write to a text file in 01_output and with the file name confusion_matrix_output_{self.config["project_name"]}.txt'
-        with open(os.path.join(output_dir,f'conf_acc_{self.config["project_name"]}.txt'), 'a') as f:
+        # this is appending to the same day! make sure you delete them there is duplication
+        with open(os.path.join(output_dir,f'conf_acc_{self.config["project_name"]}_{self.config['date_analyzed']}.txt'), 'a') as f:
             for line in output_lines:
                 f.write(line + '\n')
     
     
-    def lc_legend_param(self):
-        pallette_class_segment = {
-            '1': '#83ff5a',  # forest_trees (1)
-            '2': '#ffe3b3',  # shrubland (2)
-            '3': '#ffff33',  # grassland (3)
-            '4': '#f89696',  # openland (4)
-            '5': '#1900ff',  # waterbody_wet_area (5)
-            '6': '#e6e6fa',  # plantation (6)
-            '7': '#FFFFFF',   # gray_infrastructure (7)
-            '8': '#4B0082',  # oil_palm (8) - Dark Purple
-            '9': '#8B4513',  # cropland (9) - Brown
-            '10': '#87CEEB',  # waterbody (10) - Light Blue
-            '11': '#2F4F4F',  # wetlands (11) - Dark Teal
-            '12': '#ADFF2F',  # forest_trees_regrowth (12) - Light Green
-            '13': '#8B0000',  # historical_treeloss_10years (13) - Dark Red
-            '14': '#DAA520'   # paddy_irrigated (14) - Golden Yellow
+    def lc_legend_param(self, pallette_class_segment = {}, class_name_lc = {}, list_class_restrict = []):
+        if pallette_class_segment == {} or class_name_lc == {}:  # both of them need to be defined, if not, then it will be in the following implication (OR)
+            pallette_class_segment = {
+                '1': '#83ff5a',  # forest_trees (1)
+                '2': '#ffe3b3',  # shrubland (2)
+                '3': '#ffff33',  # grassland (3)
+                '4': '#f89696',  # openland (4)
+                '5': '#1900ff',  # waterbody_wet_area (5)
+                '6': '#e6e6fa',  # plantation (6)
+                '7': '#FFFFFF',   # gray_infrastructure (7)
+                '8': '#4B0082',  # oil_palm (8) - Dark Purple
+                '9': '#8B4513',  # cropland (9) - Brown
+                '10': '#87CEEB',  # waterbody (10) - Light Blue
+                '11': '#2F4F4F',  # wetlands (11) - Dark Teal
+                '12': '#ADFF2F',  # forest_trees_regrowth (12) - Light Green
+                '13': '#8B0000',  # historical_treeloss_10years (13) - Dark Red
+                '14': '#DAA520'   # paddy_irrigated (14) - Golden Yellow
 
+                }
+            class_name_lc = {
+                '1': 'forest_trees',
+                '2': 'shrubland',
+                '3': 'grassland',
+                '4': 'openland',
+                '5': 'waterbody_wet_area',
+                '6': 'plantation',
+                '7': 'gray_infrastructure',
+                '8': 'oil_palm',
+                '9': 'cropland',
+                '10':'waterbody',
+                '11': 'wetlands',
+                '12': 'forest_trees_regrowth',
+                '13': 'historical_treeloss_10years',
+                '14': 'paddy_irrigated',
             }
+        else:
+            pallette_class_segment = pallette_class_segment
+            class_name_lc = class_name_lc
+
+        if list_class_restrict != []:
+            # filtered based on id class
+            pallette_class_segment = {k:v for k,v in pallette_class_segment.items() if str(k) in list_class_restrict}
+            class_name_lc = {k:v for k,v in class_name_lc.items() if str(k) in list_class_restrict}
         
         # Define the order of class IDs only for FCD
-        class_ids_order = ['1', '2', '3', '4', '5', '6', '7', '8', '9','10','11','12','13','14']
+        all_keys = [f for f,v in pallette_class_segment.items()] 
+        all_keys_num_sorted = sorted([int(str) for str in all_keys])
+        class_ids_order = [str(index) for index in all_keys_num_sorted] 
+        #class_ids_order = set['1', '2', '3', '4', '5', '6', '7', '8', '9','10','11','12','13','14']
         
         # Create a list of colors in the correct order
         colors_in_order = [pallette_class_segment[class_id] for class_id in class_ids_order]
 
-        vis_param_lc = {'min': 1, 'max': 14, 'palette': colors_in_order}
-        class_name_lc = {
-            '1': 'forest_trees',
-            '2': 'shrubland',
-            '3': 'grassland',
-            '4': 'openland',
-            '5': 'waterbody_wet_area',
-            '6': 'plantation',
-            '7': 'gray_infrastructure',
-            '8': 'oil_palm',
-            '9': 'cropland',
-            '10':'waterbody',
-            '11': 'wetlands',
-            '12': 'forest_trees_regrowth',
-            '13': 'historical_treeloss_10years',
-            '14': 'paddy_irrigated',
-        }
+        vis_param_lc = {'min': 1, 'max': len(class_ids_order), 'palette': colors_in_order}
 
         legend_class = {k:{'name':v, 'color':pallette_class_segment[k]} for k,v in class_name_lc.items()}
 
