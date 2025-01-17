@@ -33,6 +33,6 @@ activate:
 * if it does not work in powershell, use cmd instead
 
 
-
-
+if there is error with cert
+pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host=files.pythonhosted.org -r requirements.txt
 
