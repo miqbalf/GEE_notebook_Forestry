@@ -1,8 +1,9 @@
 import ee
 import geemap
 from ..spectral_indices.utils import normalization_100
-from ..exporting_ee.main import exporting_from_ee
-from .. import root_osi_folder
+# from ..exporting_ee.main import exporting_from_ee
+# from .. import root_osi_folder
+from ..legends.utils import legends_obj_creation
 import pandas as pd
 import numpy as np
 import os
@@ -246,8 +247,7 @@ class LandcoverML:
         output_dir = self.config['output_dir'] # change to the json info
 
         # Write to a text file in 01_output and with the file name confusion_matrix_output_{self.config["project_name"]}.txt'
-        # this is appending to the same day! make sure you delete them there is duplication
-        with open(os.path.join(output_dir,f'conf_acc_{self.config["project_name"]}_{self.config['date_analyzed']}.txt'), 'a') as f:
+        with open(os.path.join(output_dir,f'conf_acc_{self.config["project_name"]}_{self.config["date_analyzed"]}.txt'), 'w') as f:
             for line in output_lines:
                 f.write(line + '\n')
     
@@ -292,22 +292,16 @@ class LandcoverML:
             class_name_lc = class_name_lc
 
         if list_class_restrict != []:
+            #ensuring they are str num
+            str_list_class_restrict = [str(id_class) for id_class in list_class_restrict]
             # filtered based on id class
-            pallette_class_segment = {k:v for k,v in pallette_class_segment.items() if str(k) in list_class_restrict}
-            class_name_lc = {k:v for k,v in class_name_lc.items() if str(k) in list_class_restrict}
+            pallette_class_segment = {k:v for k,v in pallette_class_segment.items() if str(k) in str_list_class_restrict}
+            class_name_lc = {k:v for k,v in class_name_lc.items() if str(k) in str_list_class_restrict}
         
-        # Define the order of class IDs only for FCD
-        all_keys = [f for f,v in pallette_class_segment.items()] 
-        all_keys_num_sorted = sorted([int(str) for str in all_keys])
-        class_ids_order = [str(index) for index in all_keys_num_sorted] 
-        #class_ids_order = set['1', '2', '3', '4', '5', '6', '7', '8', '9','10','11','12','13','14']
-        
-        # Create a list of colors in the correct order
-        colors_in_order = [pallette_class_segment[class_id] for class_id in class_ids_order]
-
-        vis_param_lc = {'min': 1, 'max': len(class_ids_order), 'palette': colors_in_order}
-
-        legend_class = {k:{'name':v, 'color':pallette_class_segment[k]} for k,v in class_name_lc.items()}
+        # ensure it runs in all condition
+        legend = legends_obj_creation(pallette_class_segment, class_name_lc)
+        legend_class = legend['legend_class']
+        vis_param_lc = legend['vis_param']
 
         return {'legend_class':legend_class,
                 'vis_param_lc':vis_param_lc}

@@ -1,6 +1,7 @@
 import ee
 from ..spectral_indices.utils import assigning_band
 from .utils import add_classes, add_images, select_band_if_exists, unmasked_helper
+from ..legends.utils import legends_obj_creation
 
 class AssignClassZone:
     def __init__(self, config, *args, **kwargs):
@@ -26,7 +27,7 @@ class AssignClassZone:
         self.AOI = config['AOI']
         self.band_name_image = config['band_name_image']
 
-        class_name_map_color = {
+        self.class_name_map_color = {
             '1': '#ffe3b3',
             '2': '#ffff33',
             '3': '#F89696',
@@ -42,21 +43,24 @@ class AssignClassZone:
             '13': '#8B4513',
             '14': '#DAA520'
         }
-        
-        # Define the order of class IDs only for FCD
-        class_ids_order_FCD = ['1', '2', '3', '4', '5', '6', '7', '8', '9','10','11','12','13','14']
-        
-        # Create a list of colors in the correct order
-        colors_in_order_FCD = [class_name_map_color[class_id] for class_id in class_ids_order_FCD]
-        
-        # Set the min and max values based on your class IDs
-        self.vis_param_merged = {
-            'min': 1,
-            'max': 14,
-            'palette': colors_in_order_FCD
-        }
 
-        class_name_map = {
+        # list_all_id_int = [int(k) for k,v in self.class_name_map_color.items()]
+        
+        # # Define the order of class IDs only for FCD
+        # class_ids_order_FCD_num = sorted(list_all_id_int)
+        # class_ids_order_FCD = [str(num_id) for num_id in class_ids_order_FCD_num]
+        
+        # # Create a list of colors in the correct order
+        # colors_in_order_FCD = [self.class_name_map_color[class_id] for class_id in class_ids_order_FCD]
+        
+        # # Set the min and max values based on your class IDs
+        # self.vis_param_merged = {
+        #     'min': min(class_ids_order_FCD_num),
+        #     'max': len(class_ids_order_FCD_num),
+        #     'palette': colors_in_order_FCD
+        # }
+
+        self.class_name_map = {
             '1': 'Shrubland_Go-Zone',
             '2': 'Grassland_Go-Zone',
             '3': 'Openland_Go-Zone',
@@ -73,7 +77,60 @@ class AssignClassZone:
             '14': 'Paddy_irrigated_Go-Zone',
         }
 
-        self.legend_class = {k:{'name':v, 'color':class_name_map_color[k]} for k,v in class_name_map.items()}
+        legend = legends_obj_creation(self.class_name_map_color, self.class_name_map)
+        legend_class = legend['legend_class']
+        vis_param_lc = legend['vis_param']
+        self.vis_param_merged = vis_param_lc
+        self.legend_class = legend_class
+
+        # self.legend_class = {k:{'name':v, 'color':self.class_name_map_color[k]} for k,v in self.class_name_map.items()}
+
+    def restrict_zone_from_lc(self, list_class_lc = []):
+        print('you are restricting the zone information legend and visualization list in this {list_class_lc}')
+        #check restricted zone for new item legend from land cover (filter only on existing class in AOI)
+        pairing_lc_zone = {'1': ['4','5','6','7'], # possibility outcome from lc (ML) to hansen data
+                   '2': ['1', '8'],
+                   '3': ['2','8'],
+                   '4': ['3','8'],
+                   '5': ['9'],
+                   '6': ['10'],
+                   '7': ['11'],
+                   '8': ['12'],
+                   '9': ['9'],
+                   '10': ['9'],
+                   '11': ['9'],
+                   '12': ['4','5','6','7'],
+                   '13': ['8'], # this actually needs to recheck/ revisit
+                   '14': ['14'] }
+        
+        if list_class_lc != []:
+            # example [1, 2, 3, 4]
+            # will give us:
+            '''
+            {'1': ['4', '5', '6', '7'],
+                '2': ['1', '8'],
+                '3': ['2', '8'],
+                '4': ['3', '8']}
+            '''
+            filtered_pair_lc_zone = {k: v for k, v in pairing_lc_zone.items() if k in [str(num) for num in list_class_lc]}
+            init_v = []
+            for k,v in filtered_pair_lc_zone.items():
+                # print(v)
+                init_v  = init_v + v 
+            list_set_zone = list(set(init_v))
+
+            #ensuring they are str num
+            str_list_class_restrict = [str(id_class) for id_class in list_set_zone]
+            # filtered based on id class
+            self.class_name_map_color = {k:v for k,v in self.class_name_map_color.items() if str(k) in str_list_class_restrict}
+            self.class_name_map = {k:v for k,v in self.class_name_map.items() if str(k) in str_list_class_restrict}
+            legend = legends_obj_creation(self.class_name_map_color, self.class_name_map)
+            legend_class = legend['legend_class']
+            vis_param_lc = legend['vis_param']
+            self.vis_param_merged = vis_param_lc
+            self.legend_class = legend_class
+        else:
+            print('no list specified for the restriction from land cover to zone')
 
        
     def assigning_fcd_class(self, gfc, minLoss):
