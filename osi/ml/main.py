@@ -2,6 +2,7 @@ import ee
 import geemap
 from ..spectral_indices.utils import normalization_100
 from ..exporting_ee.main import exporting_from_ee
+from .. import root_osi_folder
 import pandas as pd
 import numpy as np
 import os
@@ -241,10 +242,10 @@ class LandcoverML:
         for line in output_lines:
             print(line)
 
-        #output_dir = os.path.join(self.config['module_path'],"osi","01_output")
+        output_dir = os.path.join(root_osi_folder,"01_output")
 
         # Write to a text file in 01_output and with the file name confusion_matrix_output_{self.config["project_name"]}.txt'
-        with open(os.path.join(output_dir,f'conf_acc_{self.config["project_module_name"]}.txt'), 'a') as f:
+        with open(os.path.join(output_dir,f'conf_acc_{self.config["project_name"]}.txt'), 'a') as f:
             for line in output_lines:
                 f.write(line + '\n')
     
