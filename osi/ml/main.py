@@ -252,6 +252,8 @@ class LandcoverML:
         with open(os.path.join(output_dir,f'conf_acc_{self.config["project_name"]}_{self.config["date_analyzed"]}.txt'), 'a') as f:
             for line in output_lines:
                 f.write(line + '\n')
+
+        return result_matrix.getInfo()
     
     
     def lc_legend_param(self, pallette_class_segment = {}, class_name_lc = {}, list_class_restrict = []):
