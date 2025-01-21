@@ -280,7 +280,7 @@ class LandcoverML:
                 '2': 'shrubland',
                 '3': 'grassland',
                 '4': 'openland',
-                '5': 'waterbody_wet_area',
+                '5': 'waterbody_waterlogged',
                 '6': 'plantation',
                 '7': 'gray_infrastructure',
                 '8': 'oil_palm',
