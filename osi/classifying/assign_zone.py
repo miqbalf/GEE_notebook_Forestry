@@ -358,7 +358,11 @@ class AssignClassZone:
         shrub_masked = lc_image_ml.updateMask(lc_image_ml.select(['classification']).eq(2))
         grass_masked = lc_image_ml.updateMask(lc_image_ml.select(['classification']).eq(3))
         openland_masked = lc_image_ml.updateMask(lc_image_ml.select(['classification']).eq(4))
-        water_masked = lc_image_ml.updateMask(lc_image_ml.select(['classification']).eq(5))
+        water_masked = lc_image_ml.updateMask(
+                                                lc_image_ml.select('classification').eq(5)
+                                                .Or(lc_image_ml.select('classification').eq(10))
+                                                .Or(lc_image_ml.select('classification').eq(11))
+                                            )
         plantation_masked = lc_image_ml.updateMask(lc_image_ml.select(['classification']).eq(6))
         infrastructure_masked = lc_image_ml.updateMask(lc_image_ml.select(['classification']).eq(7))
         oil_palm_masked = lc_image_ml.updateMask(lc_image_ml.select(['classification']).eq(8))
@@ -388,8 +392,11 @@ class AssignClassZone:
         # unmasked oil palm
         unmasked_oilpalm = unmasked_helper(oil_palm_masked, AOI_img, self.AOI)
 
-        goZone = unmaskedLoss.And(unmaskedHiF).And(unmaskedWaterAOI).And(unmasked_infrastructure).And(unmasked_oilpalm)
+        goZone = unmaskedLoss.And(unmaskedHiF).And(unmaskedWaterAOI).And(unmasked_infrastructure).And(unmasked_oilpalm).And(unmasked_plantation)
         goZone_edited = ee.Image(assigning_band(self.config['band_name_image'],999,goZone))
+
+        no_goZone = unmasked_helper(goZone, AOI_img, self.AOI).Not() #this Not operation is just convert into 1 instead of 0 and null
+        no_goZone_edited = ee.Image(assigning_band(self.config['band_name_image'],888,no_goZone))
 
         # forest category and no 10 years rule
         highBaselineF = forest_masked.And(unmaskedLoss)
@@ -420,9 +427,6 @@ class AssignClassZone:
         Openland_gozone = openland_masked.And(goZone_edited).select(['pixel'])
         Openland_gozone = ee.Image(assigning_band(self.config['band_name_image'],3,Openland_gozone))
 
-        Openland_gozone = openland_masked.And(goZone_edited).select(['pixel'])
-        Openland_gozone = ee.Image(assigning_band(self.config['band_name_image'],3,Openland_gozone))
-
         Cropland_Gozone = cropland_masked.And(goZone_edited).select(['pixel'])
         Cropland_Gozone = ee.Image(assigning_band(self.config['band_name_image'],13,Cropland_Gozone))
 
@@ -430,13 +434,14 @@ class AssignClassZone:
         Paddy_Gozone = ee.Image(assigning_band(self.config['band_name_image'],14,Paddy_Gozone))
 
         ## NO GO additional
-        Plantation_noGozone = plantation_masked.And(goZone_edited).select(['pixel'])
+        ## NO GO additional
+        Plantation_noGozone = plantation_masked.And(no_goZone_edited).select(['pixel'])
         Plantation_noGozone = ee.Image(assigning_band(self.config['band_name_image'],10,Plantation_noGozone))
 
-        Infrastructure_noGozone = infrastructure_masked.And(goZone_edited).select(['pixel'])
+        Infrastructure_noGozone = infrastructure_masked.And(no_goZone_edited).select(['pixel'])
         Infrastructure_noGozone = ee.Image(assigning_band(self.config['band_name_image'],11,Infrastructure_noGozone))
 
-        Oilpalm_noGozone = oil_palm_masked.And(goZone_edited).select(['pixel'])
+        Oilpalm_noGozone = oil_palm_masked.And(no_goZone_edited).select(['pixel'])
         Oilpalm_noGozone = ee.Image(assigning_band(self.config['band_name_image'],12,Oilpalm_noGozone))
 
         # highbaseline
