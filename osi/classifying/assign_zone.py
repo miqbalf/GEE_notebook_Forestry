@@ -391,7 +391,10 @@ class AssignClassZone:
         unmasked_infrastructure = unmasked_helper(infrastructure_masked, AOI_img, self.AOI)
         # unmasked oil palm
         unmasked_oilpalm = unmasked_helper(oil_palm_masked, AOI_img, self.AOI)
+        # unmaksed plantation
+        unmasked_plantation = unmasked_helper(plantation_masked, AOI_img, self.AOI)
 
+        #unmasked meaning, the goZone should be outside of loss(10years), HiF (highbaseline-Forest), water in AOI, infrastructure, oil palm, and plantation
         goZone = unmaskedLoss.And(unmaskedHiF).And(unmaskedWaterAOI).And(unmasked_infrastructure).And(unmasked_oilpalm).And(unmasked_plantation)
         goZone_edited = ee.Image(assigning_band(self.config['band_name_image'],999,goZone))
 
