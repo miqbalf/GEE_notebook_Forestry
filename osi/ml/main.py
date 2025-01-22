@@ -263,7 +263,7 @@ class LandcoverML:
                 '2': '#ffe3b3',  # shrubland (2)
                 '3': '#ffff33',  # grassland (3)
                 '4': '#f89696',  # openland (4)
-                '5': '#1900ff',  # waterbody_wet_area (5)
+                '5': '#1900ff',  # waterbody_waterlogged (5)
                 '6': '#e6e6fa',  # plantation (6)
                 '7': '#FFFFFF',   # gray_infrastructure (7)
                 '8': '#4B0082',  # oil_palm (8) - Dark Purple
