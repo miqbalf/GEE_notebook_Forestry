@@ -130,7 +130,7 @@ class LandcoverML:
         return {'df_sample_n':df_sample_n,
                 'stratified_training':stratified_training}
     
-    def run_classifier(self):
+    def run_classifier(self, pixel_based_only=False):
         path_shp_input_training = self.input_training
         input_training_feature = geemap.shp_to_ee(path_shp_input_training)
         points = input_training_feature.randomColumn()
@@ -156,62 +156,109 @@ class LandcoverML:
         # Classify the segments using the trained classifier
         classified_image_basedpixel = self.input_image.classify(classifier_pixel)
 
-        # Sample the points from the shapefile for training in segmented (cluster) image
-        training_stats_segmented = self.cluster_properties.sampleRegions(
-            collection=training_points,
-            properties=['code_lu'],
-            scale=self.pca_scale
-        )
+        if pixel_based_only == False:
+            # Sample the points from the shapefile for training in segmented (cluster) image
+            training_stats_segmented = self.cluster_properties.sampleRegions(
+                collection=training_points,
+                properties=['code_lu'],
+                scale=self.pca_scale
+            )
 
-        ############ RANDOM FOREST
-        # Train a random forest classifier using the segmented statistics
-        classifier_rf = ee.Classifier.smileRandomForest(10).train(
-                            features=training_stats_segmented,
-                            classProperty='code_lu',
-                            inputProperties=self.cluster_properties.bandNames()
-                            )
+            ############ RANDOM FOREST
+            # Train a random forest classifier using the segmented statistics
+            classifier_rf = ee.Classifier.smileRandomForest(10).train(
+                                features=training_stats_segmented,
+                                classProperty='code_lu',
+                                inputProperties=self.cluster_properties.bandNames()
+                                )
 
-        # Classify the segments using the trained classifier
-        classified_image_rf = self.cluster_properties.classify(classifier_rf)
+            # Classify the segments using the trained classifier
+            classified_image_rf = self.cluster_properties.classify(classifier_rf)
 
-        ############# SVM
-        # Train a Support Vector Machine (SVM) classifier
-        classifier_svm = ee.Classifier.libsvm().train(
-            features=training_stats_segmented,
-            classProperty='code_lu',
-            inputProperties=self.cluster_properties.bandNames()
-        )
+            ############# SVM
+            # Train a Support Vector Machine (SVM) classifier
+            classifier_svm = ee.Classifier.libsvm().train(
+                features=training_stats_segmented,
+                classProperty='code_lu',
+                inputProperties=self.cluster_properties.bandNames()
+            )
 
-        # Classify the image using the trained classifier
-        classified_image_svm = self.cluster_properties.classify(classifier_svm)
+            # Classify the image using the trained classifier
+            classified_image_svm = self.cluster_properties.classify(classifier_svm)
 
-        ############# GBM
-        # Train a Gradient Boosting Classifier
-        classifier_gbm = ee.Classifier.smileGradientTreeBoost (#numberOfTrees, shrinkage, samplingRate, maxNodes, loss, seed
-            numberOfTrees=100,
-        ).train(
-            features=training_stats_segmented,
-            classProperty='code_lu',
-            inputProperties=self.cluster_properties.bandNames()
-        )
+            ############# GBM
+            # Train a Gradient Boosting Classifier
+            classifier_gbm = ee.Classifier.smileGradientTreeBoost (#numberOfTrees, shrinkage, samplingRate, maxNodes, loss, seed
+                numberOfTrees=100,
+            ).train(
+                features=training_stats_segmented,
+                classProperty='code_lu',
+                inputProperties=self.cluster_properties.bandNames()
+            )
 
-        # Classify the image using the trained classifier
-        classified_image_gbm = self.cluster_properties.classify(classifier_gbm)
+            # Classify the image using the trained classifier
+            classified_image_gbm = self.cluster_properties.classify(classifier_gbm)
 
-        ############# CART
-        # Train a CART classifier
-        classifier_cart = ee.Classifier.smileCart().train(
-            features=training_stats_segmented,
-            classProperty='code_lu',
-            inputProperties=self.cluster_properties.bandNames()
-        )
+            ############# CART
+            # Train a CART classifier
+            classifier_cart = ee.Classifier.smileCart().train(
+                features=training_stats_segmented,
+                classProperty='code_lu',
+                inputProperties=self.cluster_properties.bandNames()
+            )
 
-        # Classify the image using the trained classifier
-        classified_image_cart = self.cluster_properties.classify(classifier_cart)
+            # Classify the image using the trained classifier
+            classified_image_cart = self.cluster_properties.classify(classifier_cart)
+        else:
+            ############ RANDOM FOREST
+            # Train a random forest classifier using the segmented statistics
+            classifier_rf = ee.Classifier.smileRandomForest(10).train(
+                                features=training_pixel,
+                                classProperty='code_lu',
+                                inputProperties=self.input_image.bandNames()
+                                )
+
+            # Classify the segments using the trained classifier
+            classified_image_rf = self.input_image.classify(classifier_rf)
+
+            ############# SVM
+            # Train a Support Vector Machine (SVM) classifier
+            classifier_svm = ee.Classifier.libsvm().train(
+                features=training_pixel,
+                classProperty='code_lu',
+                inputProperties=self.input_image.bandNames()
+            )
+
+            # Classify the image using the trained classifier
+            classified_image_svm = self.input_image.classify(classifier_svm)
+
+            ############# GBM
+            # Train a Gradient Boosting Classifier
+            classifier_gbm = ee.Classifier.smileGradientTreeBoost (#numberOfTrees, shrinkage, samplingRate, maxNodes, loss, seed
+                numberOfTrees=100,
+            ).train(
+                features=training_pixel,
+                classProperty='code_lu',
+                inputProperties=self.input_image.bandNames()
+            )
+
+            # Classify the image using the trained classifier
+            classified_image_gbm = self.input_image.classify(classifier_gbm)
+
+            ############# CART
+            # Train a CART classifier
+            classifier_cart = ee.Classifier.smileCart().train(
+                features=training_pixel,
+                classProperty='code_lu',
+                inputProperties=self.input_image.bandNames()
+            )
+
+            # Classify the image using the trained classifier
+            classified_image_cart = self.input_image.classify(classifier_cart)
 
         return {'training_points':training_points,
                 'validation_points': validation_points,
-                'classified_image_basedpixel':classified_image_basedpixel,
+                'classified_image_basedpixel':classified_image_basedpixel, # basically if pixel_only as True, this will be the same as classified_image_rf
                 'classified_image_rf': classified_image_rf,
                 'classified_image_svm':classified_image_svm,
                 'classified_image_gbm':classified_image_gbm,
