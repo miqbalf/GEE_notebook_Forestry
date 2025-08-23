@@ -130,7 +130,7 @@ class LandcoverML:
         return {'df_sample_n':df_sample_n,
                 'stratified_training':stratified_training}
     
-    def run_classifier(self, pixel_based_only=False):
+    def run_classifier(self, pixel_based_only=False, regression = False):
         path_shp_input_training = self.input_training
         input_training_feature = geemap.shp_to_ee(path_shp_input_training)
         points = input_training_feature.randomColumn()
@@ -154,7 +154,9 @@ class LandcoverML:
         )
 
         # Classify the segments using the trained classifier
-        classified_image_basedpixel = self.input_image.classify(classifier_pixel)
+        # classified_image_basedpixel = self.input_image.classify(classifier_pixel)
+
+        input_image = self.input_image
 
         if pixel_based_only == False:
             # Sample the points from the shapefile for training in segmented (cluster) image
@@ -163,6 +165,8 @@ class LandcoverML:
                 properties=['code_lu'],
                 scale=self.pca_scale
             )
+
+            input_image = self.cluster_properties
 
             ############ RANDOM FOREST
             # Train a random forest classifier using the segmented statistics
@@ -173,7 +177,7 @@ class LandcoverML:
                                 )
 
             # Classify the segments using the trained classifier
-            classified_image_rf = self.cluster_properties.classify(classifier_rf)
+            # classified_image_rf = self.cluster_properties.classify(classifier_rf)
 
             ############# SVM
             # Train a Support Vector Machine (SVM) classifier
@@ -184,7 +188,7 @@ class LandcoverML:
             )
 
             # Classify the image using the trained classifier
-            classified_image_svm = self.cluster_properties.classify(classifier_svm)
+            # classified_image_svm = self.cluster_properties.classify(classifier_svm)
 
             ############# GBM
             # Train a Gradient Boosting Classifier
@@ -197,7 +201,7 @@ class LandcoverML:
             )
 
             # Classify the image using the trained classifier
-            classified_image_gbm = self.cluster_properties.classify(classifier_gbm)
+            # classified_image_gbm = self.cluster_properties.classify(classifier_gbm)
 
             ############# CART
             # Train a CART classifier
@@ -208,8 +212,9 @@ class LandcoverML:
             )
 
             # Classify the image using the trained classifier
-            classified_image_cart = self.cluster_properties.classify(classifier_cart)
+            # classified_image_cart = self.cluster_properties.classify(classifier_cart)
         else:
+            input_image = self.input_image
             ############ RANDOM FOREST
             # Train a random forest classifier using the segmented statistics
             classifier_rf = ee.Classifier.smileRandomForest(10).train(
@@ -219,7 +224,7 @@ class LandcoverML:
                                 )
 
             # Classify the segments using the trained classifier
-            classified_image_rf = self.input_image.classify(classifier_rf)
+            # classified_image_rf = self.input_image.classify(classifier_rf)
 
             ############# SVM
             # Train a Support Vector Machine (SVM) classifier
@@ -230,7 +235,7 @@ class LandcoverML:
             )
 
             # Classify the image using the trained classifier
-            classified_image_svm = self.input_image.classify(classifier_svm)
+            # classified_image_svm = self.input_image.classify(classifier_svm)
 
             ############# GBM
             # Train a Gradient Boosting Classifier
@@ -243,7 +248,7 @@ class LandcoverML:
             )
 
             # Classify the image using the trained classifier
-            classified_image_gbm = self.input_image.classify(classifier_gbm)
+            # classified_image_gbm = self.input_image.classify(classifier_gbm)
 
             ############# CART
             # Train a CART classifier
@@ -254,7 +259,25 @@ class LandcoverML:
             )
 
             # Classify the image using the trained classifier
-            classified_image_cart = self.input_image.classify(classifier_cart)
+            # classified_image_cart = self.input_image.classify(classifier_cart)
+            
+
+        if regression:
+            classifier_pixel = classifier_pixel.setOutputMode('REGRESSION')
+            classifier_rf = classifier_rf.setOutputMode('REGRESSION')
+            classifier_gbm = classifier_gbm.setOutputMode('REGRESSION')
+            classifier_svm = classifier_svm.setOutputMode('REGRESSION')
+            classifier_cart = classifier_cart.setOutputMode('REGRESSION')
+
+        # run the model
+        classified_image_basedpixel = self.input_image.classify(classifier_pixel)
+        classified_image_rf = input_image.classify(classifier_rf)
+        classified_image_svm = input_image.classify(classifier_svm)
+        classified_image_gbm = input_image.classify(classifier_gbm)
+        classified_image_cart = input_image.classify(classifier_cart)
+
+
+
 
         return {'training_points':training_points,
                 'validation_points': validation_points,
