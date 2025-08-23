@@ -259,6 +259,10 @@ class LandcoverML:
         return {'training_points':training_points,
                 'validation_points': validation_points,
                 'classified_image_basedpixel':classified_image_basedpixel, # basically if pixel_only as True, this will be the same as classified_image_rf
+                'classifier_rf':classifier_rf,
+                'classifier_svm': classifier_svm,
+                'classifier_gbm': classifier_gbm,
+                'classifier_cart': classifier_cart,
                 'classified_image_rf': classified_image_rf,
                 'classified_image_svm':classified_image_svm,
                 'classified_image_gbm':classified_image_gbm,
