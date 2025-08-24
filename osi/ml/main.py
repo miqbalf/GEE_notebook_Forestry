@@ -8,6 +8,22 @@ import pandas as pd
 import numpy as np
 import os
 
+def stratified_train_val_split(samples, class_field='classification', train_frac=0.7, seed=42):
+    classes = samples.aggregate_array(class_field).distinct().getInfo()
+    train_parts = []
+    val_parts = []
+    for c in classes:
+        fc_c = samples.filter(ee.Filter.eq(class_field, c))
+        fc_c_rand = fc_c.randomColumn('rand', seed)
+        train_c = fc_c_rand.filter(ee.Filter.lt('rand', train_frac))
+        val_c   = fc_c_rand.filter(ee.Filter.gte('rand', train_frac))
+        train_parts.append(train_c)
+        val_parts.append(val_c)
+
+    train = ee.FeatureCollection(train_parts).flatten()
+    val   = ee.FeatureCollection(val_parts).flatten()
+    return train, val
+
 class LandcoverML:
     def __init__(self, input_image, config, cluster_properties = None, num_class=5, pca_scale=5):
         self.input_image = input_image
@@ -130,13 +146,22 @@ class LandcoverML:
         return {'df_sample_n':df_sample_n,
                 'stratified_training':stratified_training}
     
-    def run_classifier(self, pixel_based_only=False, regression = False, label_column = 'code_lu', num_trees = 100):
-        path_shp_input_training = self.input_training
-        input_training_feature = geemap.shp_to_ee(path_shp_input_training)
-        points = input_training_feature.randomColumn()
-        training_fraction = 0.7
-        training_points = points.filter(ee.Filter.lt('random', training_fraction))
-        validation_points = points.filter(ee.Filter.gte('random', training_fraction))
+    def run_classifier(self, pixel_based_only=False, regression = False, label_column = 'code_lu', num_trees = 100, ee_training_input=False, stratified_split=False):
+        if ee_training_input != True:
+            path_shp_input_training = self.input_training
+            input_training_feature = geemap.shp_to_ee(path_shp_input_training)
+        else:
+            input_training_feature = self.input_training
+        if stratified_split != True:
+            points = input_training_feature.randomColumn()
+            training_fraction = 0.7
+            training_points = points.filter(ee.Filter.lt('random', training_fraction))
+            validation_points = points.filter(ee.Filter.gte('random', training_fraction))
+        else:
+            train_fc, val_fc = stratified_train_val_split(input_training_feature, class_field='classification', train_frac=0.7)
+            print('Train count:', train_fc.size().getInfo())
+            print('Val count:  ', val_fc.size().getInfo())
+            training_points, validation_points = train_fc, val_fc
 
         ###### trying random forest- pixel based (without segmentation): classic supervised classification
         training_pixel = self.input_image.sampleRegions(
