@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import os
 
-def stratified_train_val_split(samples, class_field='classification', train_frac=0.7, seed=42):
+def stratified_train_val_split(samples, class_field='code_lu', train_frac=0.7, seed=42):
     classes = samples.aggregate_array(class_field).distinct().getInfo()
     train_parts = []
     val_parts = []
@@ -158,7 +158,7 @@ class LandcoverML:
             training_points = points.filter(ee.Filter.lt('random', training_fraction))
             validation_points = points.filter(ee.Filter.gte('random', training_fraction))
         else:
-            train_fc, val_fc = stratified_train_val_split(input_training_feature, class_field='classification', train_frac=0.7)
+            train_fc, val_fc = stratified_train_val_split(input_training_feature, class_field=label_column, train_frac=0.7)
             print('Train count:', train_fc.size().getInfo())
             print('Val count:  ', val_fc.size().getInfo())
             training_points, validation_points = train_fc, val_fc
