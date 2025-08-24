@@ -155,7 +155,7 @@ class LandcoverML:
             input_training_feature = self.input_training
         if stratified_split != True:
             if block_split:
-                # 7) Split blocks into train / validation (by block)
+                # Split blocks into train / validation (by block)
                 # -----------------------------
                 # Get distinct block ids
                 block_ids = ee.List(input_training_feature.aggregate_array('block_id')).distinct()
@@ -308,9 +308,9 @@ class LandcoverML:
                 ############# SVM
                 # Train a Support Vector Machine (SVM) classifier
                 classifier_svm = ee.Classifier.libsvm().train(
-                    features=training_stats_segmented,
+                    features=training_pixel,
                     classProperty=label_column,
-                    inputProperties=self.cluster_properties.bandNames()
+                    inputProperties=self.input_image.bandNames()
                 )
 
             # Classify the image using the trained classifier
