@@ -130,7 +130,7 @@ class LandcoverML:
         return {'df_sample_n':df_sample_n,
                 'stratified_training':stratified_training}
     
-    def run_classifier(self, pixel_based_only=False, regression = False, label_column = 'code_lu'):
+    def run_classifier(self, pixel_based_only=False, regression = False, label_column = 'code_lu', num_trees = 100):
         path_shp_input_training = self.input_training
         input_training_feature = geemap.shp_to_ee(path_shp_input_training)
         points = input_training_feature.randomColumn()
@@ -152,7 +152,7 @@ class LandcoverML:
         )
 
         # Train a random forest classifier using the segmented statistics
-        classifier_pixel = ee.Classifier.smileRandomForest(10).train(
+        classifier_pixel = ee.Classifier.smileRandomForest(num_trees).train(
             features=training_pixel,
             classProperty=label_column,
             inputProperties=self.input_image.bandNames()
@@ -192,7 +192,7 @@ class LandcoverML:
 
             ############ RANDOM FOREST
             # Train a random forest classifier using the segmented statistics
-            classifier_rf = ee.Classifier.smileRandomForest(10).train(
+            classifier_rf = ee.Classifier.smileRandomForest(num_trees).train(
                                 features=training_stats_segmented,
                                 classProperty=label_column,
                                 inputProperties=self.cluster_properties.bandNames()
@@ -201,13 +201,15 @@ class LandcoverML:
             # Classify the segments using the trained classifier
             # classified_image_rf = self.cluster_properties.classify(classifier_rf)
 
-            ############# SVM
-            # Train a Support Vector Machine (SVM) classifier
-            classifier_svm = ee.Classifier.libsvm().train(
-                features=training_stats_segmented,
-                classProperty=label_column,
-                inputProperties=self.cluster_properties.bandNames()
-            )
+            if regression != True:
+
+                ############# SVM
+                # Train a Support Vector Machine (SVM) classifier
+                classifier_svm = ee.Classifier.libsvm().train(
+                    features=training_stats_segmented,
+                    classProperty=label_column,
+                    inputProperties=self.cluster_properties.bandNames()
+                )
 
             # Classify the image using the trained classifier
             # classified_image_svm = self.cluster_properties.classify(classifier_svm)
@@ -215,7 +217,7 @@ class LandcoverML:
             ############# GBM
             # Train a Gradient Boosting Classifier
             classifier_gbm = ee.Classifier.smileGradientTreeBoost (#numberOfTrees, shrinkage, samplingRate, maxNodes, loss, seed
-                numberOfTrees=100,
+                numberOfTrees=num_trees,
             ).train(
                 features=training_stats_segmented,
                 classProperty=label_column,
@@ -242,7 +244,7 @@ class LandcoverML:
 
             ############ RANDOM FOREST
             # Train a random forest classifier using the segmented statistics
-            classifier_rf = ee.Classifier.smileRandomForest(10).train(
+            classifier_rf = ee.Classifier.smileRandomForest(num_trees).train(
                                 features=training_pixel,
                                 classProperty=label_column,
                                 inputProperties=self.input_image.bandNames()
@@ -251,13 +253,15 @@ class LandcoverML:
             # Classify the segments using the trained classifier
             # classified_image_rf = self.input_image.classify(classifier_rf)
 
-            ############# SVM
-            # Train a Support Vector Machine (SVM) classifier
-            classifier_svm = ee.Classifier.libsvm().train(
-                features=training_pixel,
-                classProperty=label_column,
-                inputProperties=self.input_image.bandNames()
-            )
+            if regression != True:
+
+                ############# SVM
+                # Train a Support Vector Machine (SVM) classifier
+                classifier_svm = ee.Classifier.libsvm().train(
+                    features=training_stats_segmented,
+                    classProperty=label_column,
+                    inputProperties=self.cluster_properties.bandNames()
+                )
 
             # Classify the image using the trained classifier
             # classified_image_svm = self.input_image.classify(classifier_svm)
@@ -265,7 +269,7 @@ class LandcoverML:
             ############# GBM
             # Train a Gradient Boosting Classifier
             classifier_gbm = ee.Classifier.smileGradientTreeBoost (#numberOfTrees, shrinkage, samplingRate, maxNodes, loss, seed
-                numberOfTrees=100,
+                numberOfTrees=num_trees,
             ).train(
                 features=training_pixel,
                 classProperty=label_column,
@@ -291,13 +295,17 @@ class LandcoverML:
             classifier_pixel = classifier_pixel.setOutputMode('REGRESSION')
             classifier_rf = classifier_rf.setOutputMode('REGRESSION')
             classifier_gbm = classifier_gbm.setOutputMode('REGRESSION')
-            classifier_svm = classifier_svm.setOutputMode('REGRESSION')
             classifier_cart = classifier_cart.setOutputMode('REGRESSION')
 
         # run the model
         classified_image_basedpixel = self.input_image.classify(classifier_pixel)
         classified_image_rf = input_image.classify(classifier_rf)
-        classified_image_svm = input_image.classify(classifier_svm)
+        if regression != True:
+            classified_image_svm = input_image.classify(classifier_svm)
+        else:
+            print('no svm ML for regression mode')
+            classified_image_svm = None
+            classifier_svm = None
         classified_image_gbm = input_image.classify(classifier_gbm)
         classified_image_cart = input_image.classify(classifier_cart)
 
