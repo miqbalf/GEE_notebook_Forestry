@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import os
 
-def stratified_train_val_split(samples, class_field='code_lu', train_frac=0.7, seed=42):
+def stratified_train_val_split(samples, class_field='classification', train_frac=0.7, seed=42):
     classes = samples.aggregate_array(class_field).distinct().getInfo()
     train_parts = []
     val_parts = []
@@ -146,22 +146,45 @@ class LandcoverML:
         return {'df_sample_n':df_sample_n,
                 'stratified_training':stratified_training}
     
-    def run_classifier(self, pixel_based_only=False, regression = False, label_column = 'code_lu', num_trees = 100, ee_training_input=False, stratified_split=False):
+    def run_classifier(self, pixel_based_only=False, regression = False, label_column = 'code_lu', stratified_column = 'classification', num_trees = 100, 
+                       ee_training_input=False, stratified_split=False, block_split=False, val_block_fraction = 0.20):
         if ee_training_input != True:
             path_shp_input_training = self.input_training
             input_training_feature = geemap.shp_to_ee(path_shp_input_training)
         else:
             input_training_feature = self.input_training
         if stratified_split != True:
-            points = input_training_feature.randomColumn()
-            training_fraction = 0.7
-            training_points = points.filter(ee.Filter.lt('random', training_fraction))
-            validation_points = points.filter(ee.Filter.gte('random', training_fraction))
+            if block_split:
+                # 7) Split blocks into train / validation (by block)
+                # -----------------------------
+                # Get distinct block ids
+                block_ids = ee.List(input_training_feature.aggregate_array('block_id')).distinct()
+                # Convert to a FC of blocks and shuffle
+                blocks_fc = ee.FeatureCollection(block_ids.map(lambda b: ee.Feature(None, {'block_id': b})))
+                blocks_shuffled = blocks_fc.randomColumn('rand', 42).sort('rand')
+                blocks_list = blocks_shuffled.aggregate_array('block_id')
+                n_blocks = blocks_list.size()
+                n_val_blocks = ee.Number(n_blocks).multiply(val_block_fraction).ceil().int()
+
+                val_blocks = blocks_list.slice(0, n_val_blocks)
+                train_samples = input_training_feature.filter(
+                    ee.Filter.inList('block_id', val_blocks).Not()
+                )
+                val_samples   = input_training_feature.filter(ee.Filter.inList('block_id', val_blocks))
+
+                print("Train samples count:", train_samples.size().getInfo())
+                print("Val samples count:  ", val_samples.size().getInfo())
+            else:
+                points = input_training_feature.randomColumn()
+                training_fraction = 0.7
+                training_points = points.filter(ee.Filter.lt('random', training_fraction))
+                validation_points = points.filter(ee.Filter.gte('random', training_fraction))
         else:
-            train_fc, val_fc = stratified_train_val_split(input_training_feature, class_field=label_column, train_frac=0.7)
+            train_fc, val_fc = stratified_train_val_split(input_training_feature, class_field=stratified_column, train_frac=0.7)
             print('Train count:', train_fc.size().getInfo())
             print('Val count:  ', val_fc.size().getInfo())
             training_points, validation_points = train_fc, val_fc
+
 
         ###### trying random forest- pixel based (without segmentation): classic supervised classification
         training_pixel = self.input_image.sampleRegions(
