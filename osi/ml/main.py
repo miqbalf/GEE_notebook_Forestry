@@ -162,6 +162,9 @@ class LandcoverML:
         # Classify the segments using the trained classifier
         # classified_image_basedpixel = self.input_image.classify(classifier_pixel)
 
+        training_pixel = training_pixel.filter(ee.Filter.notNull(self.input_image.bandNames() + ['code_lu']))
+        validation_pixel = validation_pixel.filter(ee.Filter.notNull(self.input_image.bandNames() + ['code_lu']))
+
         input_image = self.input_image
         training_input_variables = training_pixel
         validation_input_variables = validation_pixel
@@ -180,6 +183,8 @@ class LandcoverML:
                 scale=self.pca_scale
             )
 
+            training_stats_segmented = training_stats_segmented.filter(ee.Filter.notNull(self.cluster_properties.bandNames() + ['code_lu']))
+            validation_stat_segmented = validation_stat_segmented.filter(ee.Filter.notNull(self.cluster_properties.bandNames() + ['code_lu']))
 
             input_image = self.cluster_properties
             training_input_variables = training_stats_segmented
