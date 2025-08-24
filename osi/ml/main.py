@@ -130,7 +130,7 @@ class LandcoverML:
         return {'df_sample_n':df_sample_n,
                 'stratified_training':stratified_training}
     
-    def run_classifier(self, pixel_based_only=False, regression = False):
+    def run_classifier(self, pixel_based_only=False, regression = False, label_column = 'code_lu'):
         path_shp_input_training = self.input_training
         input_training_feature = geemap.shp_to_ee(path_shp_input_training)
         points = input_training_feature.randomColumn()
@@ -141,20 +141,20 @@ class LandcoverML:
         ###### trying random forest- pixel based (without segmentation): classic supervised classification
         training_pixel = self.input_image.sampleRegions(
             collection=training_points,
-            properties=['code_lu'],
+            properties=[label_column],
             scale=self.pca_scale
         )
 
         validation_pixel = self.input_image.sampleRegions(
             collection=validation_points,
-            properties=['code_lu'],
+            properties=[label_column],
             scale=self.pca_scale
         )
 
         # Train a random forest classifier using the segmented statistics
         classifier_pixel = ee.Classifier.smileRandomForest(10).train(
             features=training_pixel,
-            classProperty='code_lu',
+            classProperty=label_column,
             inputProperties=self.input_image.bandNames()
             # inputProperties=stats_image_spectralindices_fcd.bandNames()
         )
@@ -162,8 +162,8 @@ class LandcoverML:
         # Classify the segments using the trained classifier
         # classified_image_basedpixel = self.input_image.classify(classifier_pixel)
 
-        training_pixel = training_pixel.filter(ee.Filter.notNull(self.input_image.bandNames() + ['code_lu']))
-        validation_pixel = validation_pixel.filter(ee.Filter.notNull(self.input_image.bandNames() + ['code_lu']))
+        training_pixel = training_pixel.filter(ee.Filter.notNull(self.input_image.bandNames() + [label_column]))
+        validation_pixel = validation_pixel.filter(ee.Filter.notNull(self.input_image.bandNames() + [label_column]))
 
         input_image = self.input_image
         training_input_variables = training_pixel
@@ -173,18 +173,18 @@ class LandcoverML:
             # Sample the points from the shapefile for training in segmented (cluster) image
             training_stats_segmented = self.cluster_properties.sampleRegions(
                 collection=training_points,
-                properties=['code_lu'],
+                properties=[label_column],
                 scale=self.pca_scale
             )
 
             validation_stat_segmented= self.cluster_properties.sampleRegions(
                 collection=validation_points,
-                properties=['code_lu'],
+                properties=[label_column],
                 scale=self.pca_scale
             )
 
-            training_stats_segmented = training_stats_segmented.filter(ee.Filter.notNull(self.cluster_properties.bandNames() + ['code_lu']))
-            validation_stat_segmented = validation_stat_segmented.filter(ee.Filter.notNull(self.cluster_properties.bandNames() + ['code_lu']))
+            training_stats_segmented = training_stats_segmented.filter(ee.Filter.notNull(self.cluster_properties.bandNames() + [label_column]))
+            validation_stat_segmented = validation_stat_segmented.filter(ee.Filter.notNull(self.cluster_properties.bandNames() + [label_column]))
 
             input_image = self.cluster_properties
             training_input_variables = training_stats_segmented
@@ -194,7 +194,7 @@ class LandcoverML:
             # Train a random forest classifier using the segmented statistics
             classifier_rf = ee.Classifier.smileRandomForest(10).train(
                                 features=training_stats_segmented,
-                                classProperty='code_lu',
+                                classProperty=label_column,
                                 inputProperties=self.cluster_properties.bandNames()
                                 )
 
@@ -205,7 +205,7 @@ class LandcoverML:
             # Train a Support Vector Machine (SVM) classifier
             classifier_svm = ee.Classifier.libsvm().train(
                 features=training_stats_segmented,
-                classProperty='code_lu',
+                classProperty=label_column,
                 inputProperties=self.cluster_properties.bandNames()
             )
 
@@ -218,7 +218,7 @@ class LandcoverML:
                 numberOfTrees=100,
             ).train(
                 features=training_stats_segmented,
-                classProperty='code_lu',
+                classProperty=label_column,
                 inputProperties=self.cluster_properties.bandNames()
             )
 
@@ -229,7 +229,7 @@ class LandcoverML:
             # Train a CART classifier
             classifier_cart = ee.Classifier.smileCart().train(
                 features=training_stats_segmented,
-                classProperty='code_lu',
+                classProperty=label_column,
                 inputProperties=self.cluster_properties.bandNames()
             )
 
@@ -244,7 +244,7 @@ class LandcoverML:
             # Train a random forest classifier using the segmented statistics
             classifier_rf = ee.Classifier.smileRandomForest(10).train(
                                 features=training_pixel,
-                                classProperty='code_lu',
+                                classProperty=label_column,
                                 inputProperties=self.input_image.bandNames()
                                 )
 
@@ -255,7 +255,7 @@ class LandcoverML:
             # Train a Support Vector Machine (SVM) classifier
             classifier_svm = ee.Classifier.libsvm().train(
                 features=training_pixel,
-                classProperty='code_lu',
+                classProperty=label_column,
                 inputProperties=self.input_image.bandNames()
             )
 
@@ -268,7 +268,7 @@ class LandcoverML:
                 numberOfTrees=100,
             ).train(
                 features=training_pixel,
-                classProperty='code_lu',
+                classProperty=label_column,
                 inputProperties=self.input_image.bandNames()
             )
 
@@ -279,7 +279,7 @@ class LandcoverML:
             # Train a CART classifier
             classifier_cart = ee.Classifier.smileCart().train(
                 features=training_pixel,
-                classProperty='code_lu',
+                classProperty=label_column,
                 inputProperties=self.input_image.bandNames()
             )
 
@@ -319,15 +319,15 @@ class LandcoverML:
                 'classified_image_cart':classified_image_cart
                 }
     
-    def matrix_confusion(self, image_class, validation_points, ml_algorithm, output_dir):
+    def matrix_confusion(self, image_class, validation_points, ml_algorithm, output_dir, label_column='code_lu'):
         sample_validation_image = image_class.sampleRegions(
             collection=validation_points,
-            properties=['code_lu'],
+            properties=[label_column],
             scale=self.pca_scale
         )
 
         # Get the confusion matrix for both classifiers
-        result_matrix = sample_validation_image.errorMatrix('code_lu', 'classification')
+        result_matrix = sample_validation_image.errorMatrix(label_column, 'classification')
         
         # Prepare output text
         output_lines = []
