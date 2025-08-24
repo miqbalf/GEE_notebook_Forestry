@@ -174,6 +174,8 @@ class LandcoverML:
 
                 print("Train samples count:", train_samples.size().getInfo())
                 print("Val samples count:  ", val_samples.size().getInfo())
+                training_points, validation_points = train_samples, val_samples
+
             else:
                 points = input_training_feature.randomColumn()
                 training_fraction = 0.7
