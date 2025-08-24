@@ -145,6 +145,12 @@ class LandcoverML:
             scale=self.pca_scale
         )
 
+        validation_pixel = self.input_image.sampleRegions(
+            collection=validation_points,
+            properties=['code_lu'],
+            scale=self.pca_scale
+        )
+
         # Train a random forest classifier using the segmented statistics
         classifier_pixel = ee.Classifier.smileRandomForest(10).train(
             features=training_pixel,
@@ -157,6 +163,8 @@ class LandcoverML:
         # classified_image_basedpixel = self.input_image.classify(classifier_pixel)
 
         input_image = self.input_image
+        training_input_variables = training_pixel
+        validation_input_variables = validation_pixel
 
         if pixel_based_only == False:
             # Sample the points from the shapefile for training in segmented (cluster) image
@@ -166,7 +174,16 @@ class LandcoverML:
                 scale=self.pca_scale
             )
 
+            validation_stat_segmented= self.cluster_properties.sampleRegions(
+                collection=validation_points,
+                properties=['code_lu'],
+                scale=self.pca_scale
+            )
+
+
             input_image = self.cluster_properties
+            training_input_variables = training_stats_segmented
+            validation_input_variables = validation_stat_segmented
 
             ############ RANDOM FOREST
             # Train a random forest classifier using the segmented statistics
@@ -215,6 +232,9 @@ class LandcoverML:
             # classified_image_cart = self.cluster_properties.classify(classifier_cart)
         else:
             input_image = self.input_image
+            training_input_variables = training_pixel
+            validation_input_variables = validation_pixel
+
             ############ RANDOM FOREST
             # Train a random forest classifier using the segmented statistics
             classifier_rf = ee.Classifier.smileRandomForest(10).train(
@@ -281,6 +301,8 @@ class LandcoverML:
 
         return {'training_points':training_points,
                 'validation_points': validation_points,
+                'training_input_variables': training_input_variables,
+                'validation_input_variables': validation_input_variables,
                 'classified_image_basedpixel':classified_image_basedpixel, # basically if pixel_only as True, this will be the same as classified_image_rf
                 'classifier_rf':classifier_rf,
                 'classifier_svm': classifier_svm,
