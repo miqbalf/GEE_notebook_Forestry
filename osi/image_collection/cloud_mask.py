@@ -117,12 +117,16 @@ NIR_DRK_THRESH = 0.15
 CLD_PRJ_DIST = 1
 BUFFER = 50
 
-def get_s2_sr_cld_col(aoi, start_date, end_date):
+def get_s2_sr_cld_col(aoi, start_date, end_date, cloud_filter=None):
+    # Use provided cloud filter or default to CLOUD_FILTER
+    if cloud_filter is None:
+        cloud_filter = CLOUD_FILTER
+    
     # Import and filter S2 SR.
     s2_sr_col = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
         .filterBounds(aoi)
         .filterDate(start_date, end_date)
-        .filter(ee.Filter.lte('CLOUDY_PIXEL_PERCENTAGE', CLOUD_FILTER)))
+        .filter(ee.Filter.lte('CLOUDY_PIXEL_PERCENTAGE', cloud_filter)))
 
     # Import and filter s2cloudless.
     s2_cloudless_col = (ee.ImageCollection('COPERNICUS/S2_CLOUD_PROBABILITY')

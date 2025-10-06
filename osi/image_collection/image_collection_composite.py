@@ -126,7 +126,7 @@ class ImageCollectionComposite:
     def merging_collection_sentinel(self):
         print('selecting Sentinel images')
 
-        s2_sr_cld_col = get_s2_sr_cld_col(self.AOI,self.start_date, self.end_date)
+        s2_sr_cld_col = get_s2_sr_cld_col(self.AOI, self.start_date, self.end_date, self.cloud_cover_threshold)
 
         SEN_BANDS = ['B2',   'B3', 'B4',  'B5', 'B6', 'B7', 'B8', 'B8A', 'B11', 'B12', 'cloudM' ]
         bandNamesSentinel2 = ['blue', 'green', 'red', 'redE1', 'redE2', 'redE3', 'nir', 'redE4', 'swir1', 'swir2','cloudM']
