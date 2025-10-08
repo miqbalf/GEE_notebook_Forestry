@@ -11,7 +11,9 @@ from .cloud_mask import (cloud_mask_oli, cloud_mask_tm,
 
 # class imagecollection composite
 class ImageCollectionComposite:
-    def __init__(self, AOI=None, date_start_end=['2022-1-1',"2022-12-31"], cloud_cover_threshold = 40, config= {'IsThermal' : False}, list_image_ids : ee.List = None, output_dir=None):
+    def __init__(self, AOI=None, date_start_end=['2022-1-1',"2022-12-31"], cloud_cover_threshold = 40, 
+    config= {'IsThermal' : False},IsThermal=False, # to keep it here for the moment, ensure no old usage affected  
+    list_image_ids : ee.List = None, output_dir=None):
         self.config = config
         self.AOI = AOI
         self.output_dir = output_dir
@@ -32,7 +34,7 @@ class ImageCollectionComposite:
         self.date_object = datetime.datetime.strptime(self.end_date, "%Y-%m-%d")
         self.year = self.date_object.year
 
-        self.cloud_cover_threshold = cloud_cover_threshold\
+        self.cloud_cover_threshold = cloud_cover_threshold
         
         self.IsThermal = config['IsThermal']
 
