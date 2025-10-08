@@ -143,6 +143,166 @@ def get_s2_sr_cld_col(aoi, start_date, end_date, cloud_filter=None):
         })
     }))
 
+# Create custom function to get S2 collection with cloud probability for matched images only
+def get_matched_s2_sr_cld_col(matched_ids, output_dir=None):
+    """
+    Create S2 collection with cloud probability data, filtered to matched images only.
+    This is a modified version of get_s2_sr_cld_col that only includes matched images.
+    """
+    # Handle both Python lists and Earth Engine Lists
+    if isinstance(matched_ids, ee.List):
+        matched_ids_ee = matched_ids
+        matched_count = matched_ids.size().getInfo()
+        print(f"🔄 Creating S2 SR collection for matched images (EE List)...")
+    else:
+        matched_ids_ee = ee.List(matched_ids)
+        matched_count = len(matched_ids)
+        print(f"🔄 Creating S2 SR collection for {matched_count} matched images...")
+    
+    # Print the matched IDs for verification in GEE JavaScript console
+    print("\n" + "="*80)
+    print("🔍 MATCHED IDs FOR GEE JAVASCRIPT VERIFICATION:")
+    print("="*80)
+    
+    try:
+        if isinstance(matched_ids, ee.List):
+            matched_ids_list = matched_ids.getInfo()
+        else:
+            matched_ids_list = matched_ids
+        
+        # Print brief overview only
+        print("First 5 matched IDs:")
+        for i, id_val in enumerate(matched_ids_list[:5]):
+            print(f"  {i+1}: {id_val}")
+        print(f"  ... and {len(matched_ids_list) - 5} more")
+        print(f"Total matched IDs: {len(matched_ids_list)}")
+        
+        # Save to JSON file (no printing)
+        import json
+        import os
+        
+        # Use output_dir if available, otherwise use current directory
+        if output_dir:
+            output_file = os.path.join(output_dir, "matched_ids.json")
+        else:
+            output_file = "matched_ids.json"
+            
+        with open(output_file, 'w') as f:
+            json.dump(matched_ids_list, f, indent=2)
+        print(f"💾 Full JSON array saved to: {os.path.abspath(output_file)}")
+        
+        print("📋 GEE JavaScript test code:")
+        print("var matchedIds = [PASTE_JSON_FROM_FILE];")
+        print("var s2_sr_col = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED').filter(ee.Filter.inList('system:index', matchedIds));")
+        print("print('S2 SR collection size:', s2_sr_col.size());")
+        
+    except Exception as e:
+        print(f"❌ Could not get matched IDs: {e}")
+    
+    print("="*80 + "\n")
+    
+    # Import and filter S2 SR collection to matched images only
+    print(f"🔍 Filtering S2_SR_HARMONIZED by {matched_count} matched IDs...")
+    s2_sr_col = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+        .filter(ee.Filter.inList('system:index', matched_ids_ee)))  # Only matched images
+    
+    # Debug: Check if the filtering is working
+    s2_sr_count = s2_sr_col.size().getInfo()
+    print(f"🔍 S2_SR_HARMONIZED collection size: {s2_sr_count}")
+    
+    if s2_sr_count == 0:
+        print("⚠️  WARNING: No images found in S2_SR_HARMONIZED collection!")
+        print("   This suggests the matched IDs don't exist in the collection")
+        
+        # Try to get some sample IDs from the collection to compare
+        try:
+            sample_collection = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED').limit(5)
+            sample_ids = sample_collection.aggregate_array('system:index').getInfo()
+            print(f"🔍 Sample S2_SR_HARMONIZED IDs: {sample_ids}")
+        except Exception as e:
+            print(f"🔍 Could not get sample IDs: {e}")
+    
+    # NOTE: For matched images, we don't apply additional cloud filtering since
+    # the images were already filtered by cloud cover in the matching process
+    
+    print(f"✅ S2 SR collection: {s2_sr_col.size().getInfo()} images")
+    
+    # Debug: Check if there's a mismatch in system:index values
+    print(f"🔍 DEBUG: Expected {matched_count} images, got {s2_sr_col.size().getInfo()} images")
+    if s2_sr_col.size().getInfo() < matched_count:
+        print("⚠️  WARNING: Some matched images not found in S2_SR_HARMONIZED collection!")
+        print("   This could be due to system:index format differences between collections")
+        
+        # Debug: Show some example system:index values
+        try:
+            # Get first few matched IDs to see the format
+            if isinstance(matched_ids, ee.List):
+                sample_ids = matched_ids.slice(0, 5).getInfo()
+            else:
+                sample_ids = matched_ids[:5]
+            print(f"🔍 Sample matched IDs: {sample_ids}")
+            
+            # Get first few S2 SR system:index values to compare
+            s2_sr_sample = s2_sr_col.limit(5)
+            s2_sr_ids = s2_sr_sample.aggregate_array('system:index').getInfo()
+            print(f"🔍 Sample S2 SR system:index: {s2_sr_ids}")
+            
+            # Check if any of the sample matched IDs are in the S2 SR collection
+            found_count = 0
+            for sample_id in sample_ids:
+                if sample_id in s2_sr_ids:
+                    found_count += 1
+            print(f"🔍 Found {found_count}/{len(sample_ids)} sample IDs in S2 SR collection")
+            
+            # If no matches found, let's check if there's a pattern difference
+            if found_count == 0:
+                print("🔍 No matches found - checking for pattern differences:")
+                print(f"   Matched ID format: {sample_ids[0] if sample_ids else 'None'}")
+                print(f"   S2 SR format: {s2_sr_ids[0] if s2_sr_ids else 'None'}")
+                
+                # Check if we can find any partial matches
+                for sample_id in sample_ids[:2]:
+                    for s2_id in s2_sr_ids[:2]:
+                        if sample_id.split('_')[0] == s2_id.split('_')[0]:  # Check if first part matches
+                            print(f"   Partial match found: {sample_id} vs {s2_id}")
+                            break
+            
+        except Exception as e:
+            print(f"🔍 Could not get sample IDs: {e}")
+    
+    # Import and filter s2cloudless collection to matched images only
+    print(f"🔍 Filtering S2_CLOUD_PROBABILITY by {matched_count} matched IDs...")
+    s2_cloudless_col = (ee.ImageCollection('COPERNICUS/S2_CLOUD_PROBABILITY')
+        .filter(ee.Filter.inList('system:index', matched_ids_ee)))  # Only matched images
+    
+    # Debug: Check if the filtering is working
+    s2_cloudless_count = s2_cloudless_col.size().getInfo()
+    print(f"🔍 S2_CLOUD_PROBABILITY collection size: {s2_cloudless_count}")
+    
+    # If s2cloudless doesn't have all images, try alternative approach
+    if s2_cloudless_col.size().getInfo() < s2_sr_col.size().getInfo():
+        print("🔄 Some images missing from s2cloudless collection...")
+        print(f"   S2 SR: {s2_sr_col.size().getInfo()} images")
+        print(f"   S2 Cloudless: {s2_cloudless_col.size().getInfo()} images")
+    
+    print(f"✅ S2 Cloudless collection: {s2_cloudless_col.size().getInfo()} images")
+    
+    # Join the collections by system:index
+    print("🔄 Joining S2 SR and cloud probability collections...")
+    joined_collection = ee.ImageCollection(ee.Join.saveFirst('s2cloudless').apply(**{
+        'primary': s2_sr_col,
+        'secondary': s2_cloudless_col,
+        'condition': ee.Filter.equals(**{
+            'leftField': 'system:index',
+            'rightField': 'system:index'
+        })
+    }))
+    
+    final_size = joined_collection.size().getInfo()
+    print(f"✅ Joined collection: {final_size} images")
+    
+    return joined_collection
+
 def add_cloud_bands(img):
     # Get s2cloudless image, subset the probability band.
     cld_prb = ee.Image(img.get('s2cloudless')).select('probability')

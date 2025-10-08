@@ -3,7 +3,7 @@ import math
 from datetime import datetime
 
 from .cloud_mask import (cloud_mask_oli, cloud_mask_tm, 
-                         get_s2_sr_cld_col, add_cloud_bands, add_shadow_bands, apply_cld_shdw_mask  )
+                         get_s2_sr_cld_col, get_matched_s2_sr_cld_col,add_cloud_bands, add_shadow_bands, apply_cld_shdw_mask  )
 
 # need to have this threshold for a map function of thermal index, to ensure the data available,
 #  if error 400 in TI or SSI data creation, please reduce the cloud cover
@@ -11,9 +11,10 @@ from .cloud_mask import (cloud_mask_oli, cloud_mask_tm,
 
 # class imagecollection composite
 class ImageCollectionComposite:
-    def __init__(self, AOI=None, date_start_end=['2022-1-1',"2022-12-31"], cloud_cover_threshold = 40, config= {'IsThermal' : False}):
+    def __init__(self, AOI=None, date_start_end=['2022-1-1',"2022-12-31"], cloud_cover_threshold = 40, config= {'IsThermal' : False}, list_image_ids : ee.List = None, output_dir=None):
         self.config = config
         self.AOI = AOI
+        self.output_dir = output_dir
 
         # get the date based on the input list
         self.date_start_end = date_start_end
@@ -35,7 +36,9 @@ class ImageCollectionComposite:
         
         self.IsThermal = config['IsThermal']
 
-    # utils for filter collection
+        self.list_image_ids = list_image_ids
+
+    # utils for filter collection, landsat
     def filter_collection(self, col):
         return col.filterDate(self.start_date, self.end_date).filterBounds(self.AOI). \
                                                               filter(ee.Filter.lte('CLOUD_COVER', self.cloud_cover_threshold))
@@ -126,7 +129,10 @@ class ImageCollectionComposite:
     def merging_collection_sentinel(self):
         print('selecting Sentinel images')
 
-        s2_sr_cld_col = get_s2_sr_cld_col(self.AOI, self.start_date, self.end_date, self.cloud_cover_threshold)
+        if self.list_image_ids is not None:
+            s2_sr_cld_col = get_matched_s2_sr_cld_col(self.list_image_ids, output_dir=self.output_dir)
+        else:
+            s2_sr_cld_col = get_s2_sr_cld_col(self.AOI, self.start_date, self.end_date, self.cloud_cover_threshold)
 
         SEN_BANDS = ['B2',   'B3', 'B4',  'B5', 'B6', 'B7', 'B8', 'B8A', 'B11', 'B12', 'cloudM' ]
         bandNamesSentinel2 = ['blue', 'green', 'red', 'redE1', 'redE2', 'redE3', 'nir', 'redE4', 'swir1', 'swir2','cloudM']
