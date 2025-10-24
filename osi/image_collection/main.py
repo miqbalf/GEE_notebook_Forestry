@@ -24,7 +24,10 @@ class ImageCollection(ImageCollectionComposite):
         if self.I_satellite == 'Landsat':
             image_mosaick = self.image_collection_mask().map(lambda image: doPhysicalCorrection(image, type_DEM='srtm',
                                                                                         I_satellite='Landsat')) \
-                                                                                        .median().clip(self.AOI)
+                                                                                        .median().clip(self.AOI).reproject(crs='EPSG:4326', scale=30)
+        elif self.I_satellite == 'Planet':
+            # Planet data comes as single image, no median needed
+            image_mosaick = self.image_collection_mask().clip(self.AOI).reproject(crs='EPSG:4326', scale=5)
         elif self.IsThermal == True:
             # Define the weighted median function
             def weighted_median(collection):
@@ -38,7 +41,10 @@ class ImageCollection(ImageCollectionComposite):
             
             image_mosaick = weighted_median(self.image_collection_mask()).clip(self.AOI)
         
+        elif self.I_satellite == 'Sentinel':
+            image_mosaick = self.image_collection_mask().median().clip(self.AOI).reproject(crs='EPSG:4326', scale=10)
         else:
+            # For other satellite types or default case
             image_mosaick = self.image_collection_mask().median().clip(self.AOI)
 
         return image_mosaick
