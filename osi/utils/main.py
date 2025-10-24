@@ -1,3 +1,4 @@
+import ee
 
 # Function to validate each feature's 'id' property
 def validate_feature(feature_info, field_name):
