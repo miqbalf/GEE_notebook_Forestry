@@ -301,3 +301,159 @@ def generate_map_id(layername_visparam: dict, layername_image: dict):
         }
 
     return {'all_mapid': all_mapid, 'map_layers': map_layers}
+
+
+def generate_map_id_list(layers_data: list):
+    """
+    Enhanced Map ID generation with flexible layer definitions.
+    
+    Args:
+        layers_data: List of layer dictionaries, each containing:
+            - 'name': Layer name (str)
+            - 'image': GEE Image object (ee.Image)
+            - 'vis_params': Visualization parameters (dict)
+            - 'description': Optional description (str, optional)
+    
+    Returns:
+        Dictionary containing:
+            - 'all_mapid': Raw GEE Map ID objects for each layer
+            - 'map_layers': Processed layer metadata with tile URLs and descriptions
+    
+    Example:
+        >>> layers = [
+        ...     {
+        ...         'name': 'true_color',
+        ...         'image': landsat_image,
+        ...         'vis_params': {'bands': ['B4', 'B3', 'B2'], 'min': 0, 'max': 3000},
+        ...         'description': 'True Color RGB visualization'
+        ...     },
+        ...     {
+        ...         'name': 'ndvi',
+        ...         'image': ndvi_image,
+        ...         'vis_params': {'min': -0.2, 'max': 0.8, 'palette': ['red', 'yellow', 'green']}
+        ...     }
+        ... ]
+        >>> result = generate_map_id_enhanced(layers)
+    """
+    print("Generating GEE Map IDs...")
+    
+    # Validate input
+    if not layers_data:
+        raise ValueError("layers_data cannot be empty")
+    
+    # Generate Map IDs for each layer
+    all_mapid = {}
+    map_layers = {}
+    
+    for layer_info in layers_data:
+        layer_name = layer_info['name']
+        image = layer_info['image']
+        vis_params = layer_info['vis_params']
+        description = layer_info.get('description', f'{layer_name.upper()} visualization from GEE analysis')
+        
+        # Validate inputs
+        if not isinstance(image, ee.Image):
+            raise ValueError(f"Layer '{layer_name}': image must be an ee.Image object")
+        
+        if not isinstance(vis_params, dict):
+            raise ValueError(f"Layer '{layer_name}': vis_params must be a dictionary")
+        
+        try:
+            # Generate Map ID
+            map_id_dict = ee.Image(image).getMapId(vis_params)
+            all_mapid[layer_name] = map_id_dict
+            
+            # Process into user-friendly format
+            map_layers[layer_name] = {
+                'tile_url': map_id_dict['tile_fetcher'].url_format,
+                'name': layer_name.replace('_', ' ').title(),
+                'description': description,
+                'vis_params': vis_params
+            }
+            
+            print(f"✅ Generated Map ID for layer: {layer_name}")
+            
+        except Exception as e:
+            print(f"❌ Failed to generate Map ID for layer '{layer_name}': {e}")
+            raise ValueError(f"Failed to generate Map ID for layer '{layer_name}': {e}")
+    
+    print(f"✅ Generated Map IDs for {len(map_layers)} layers")
+    return {'all_mapid': all_mapid, 'map_layers': map_layers}
+
+
+def generate_map_id_one(layers: dict):
+    """
+    Simple Map ID generation from a single dictionary.
+    
+    Args:
+        layers: Dictionary where keys are layer names and values contain:
+            - 'image': GEE Image object
+            - 'vis_params': Visualization parameters
+            - 'description': Optional description
+    
+    Returns:
+        Dictionary containing Map ID results
+    
+    Example:
+        >>> layers = {
+        ...     'true_color': {
+        ...         'image': landsat_image,
+        ...         'vis_params': {'bands': ['B4', 'B3', 'B2']},
+        ...         'description': 'True Color RGB'
+        ...     },
+        ...     'ndvi': {
+        ...         'image': ndvi_image,
+        ...         'vis_params': {'min': -0.2, 'max': 0.8, 'palette': ['red', 'yellow', 'green']}
+        ...     }
+        ... }
+        >>> result = generate_map_id_simple(layers)
+    """
+    # Convert to list format
+    layers_data = []
+    for name, layer_info in layers.items():
+        layers_data.append({
+            'name': name,
+            'image': layer_info['image'],
+            'vis_params': layer_info['vis_params'],
+            'description': layer_info.get('description', f'{name.upper()} visualization from GEE analysis')
+        })
+    
+    return generate_map_id_list(layers_data)
+
+
+def create_layer_info(name: str, image: ee.Image, vis_params: dict, description: str = None):
+    """
+    Create a layer info dictionary for use with generate_map_id_enhanced.
+    
+    Args:
+        name: Layer name
+        image: GEE Image object
+        vis_params: Visualization parameters
+        description: Optional description
+    
+    Returns:
+        Layer info dictionary
+    """
+    return {
+        'name': name,
+        'image': image,
+        'vis_params': vis_params,
+        'description': description or f'{name.upper()} visualization from GEE analysis'
+    }
+
+
+def quick_map_id(name: str, image: ee.Image, vis_params: dict, description: str = None):
+    """
+    Quick Map ID generation for a single layer.
+    
+    Args:
+        name: Layer name
+        image: GEE Image object
+        vis_params: Visualization parameters
+        description: Optional description
+    
+    Returns:
+        Map ID result for the single layer
+    """
+    layer_info = create_layer_info(name, image, vis_params, description)
+    return generate_map_id_list([layer_info])
