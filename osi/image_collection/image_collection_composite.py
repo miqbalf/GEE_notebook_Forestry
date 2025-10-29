@@ -36,7 +36,7 @@ class ImageCollectionComposite:
 
         self.cloud_cover_threshold = cloud_cover_threshold
         
-        self.IsThermal = config['IsThermal']
+        self.IsThermal = config.get('IsThermal',False)
 
         self.list_image_ids = list_image_ids
 

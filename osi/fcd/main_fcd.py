@@ -10,27 +10,37 @@ from ..pca.pca_gee import PCA
 from ..spectral_indices.utils import normalization_100, assigning_band
 
 class FCDCalc:
-    def __init__(self, config):
+    def __init__(self, config, image_collection_mask=None, image_mosaick=None):
         self.config = config
         self.I_satellite = config['I_satellite']
-        self.IsThermal = config['IsThermal']
+        self.IsThermal = config.get('IsThermal',False)
         self.AOI = config['AOI']
         self.date_start_end = config['date_start_end']
         self.cloud_cover_threshold = config['cloud_cover_threshold']
         self.region = config['region']
 
-        # initiate instance class for the image collection and later mosaicking
-        self.InputCollection = ImageCollection(AOI=self.AOI, 
-                                               date_start_end=self.date_start_end, 
-                                               cloud_cover_threshold = self.cloud_cover_threshold, 
-                                               I_satellite=self.I_satellite, 
-                                               region=self.region, 
-                                               config = self.config
-                                               )
+        if image_mosaick is None:
+            # Create ImageCollection and compute image_mosaick once
+            # image_mosaick() internally calls image_collection_mask(), so we only need to call image_mosaick()
+            self.InputCollection = ImageCollection(AOI=self.AOI, 
+                                                   date_start_end=self.date_start_end, 
+                                                   cloud_cover_threshold = self.cloud_cover_threshold, 
+                                                   I_satellite=self.I_satellite, 
+                                                   region=self.region, 
+                                                   config = self.config
+                                                   )
+            # Only call image_mosaick() once - it internally calls image_collection_mask()
+            # This avoids duplicate "selecting Sentinel images" messages
+            self.image_mosaick = self.InputCollection.image_mosaick()
+            # Get image_collection_mask separately if needed (but it may not be used)
+            # Note: image_mosaick already processed the collection, so we only fetch the mask if needed
+            self.image_collection_mask = None  # Will be computed lazily if needed
+        else:
+            # Use pre-computed images if provided
+            self.image_mosaick = image_mosaick
+            self.image_collection_mask = image_collection_mask
+            self.InputCollection = None  # Not needed if images are pre-computed
         
-        self.image_mosaick = None
-        self.image_collection_mask = None
-
         self.avi_image = None
         self.bsi_image = None
         self.si_image = None
@@ -55,8 +65,10 @@ class FCDCalc:
     def fcd_calc(self):
         ti_norm, ssi2 = None, None
         FCD1_1, FCD2_1, FCD1_2, FCD2_2 = None, None, None, None
-        image_collection_mask = self.InputCollection.image_collection_mask()
-        image_mosaick = self.InputCollection.image_mosaick()
+        
+        # Use the pre-computed image_mosaick (already computed in __init__)
+        # No need to call InputCollection methods again - this avoids duplicate processing
+        image_mosaick = self.image_mosaick
         
         # class image spectral
         classImageSpectral = SpectralAnalysis(image_mosaick, self.config)
@@ -141,7 +153,7 @@ class FCDCalc:
             FCD2_1 = (((svi2.multiply(ssi1)).add(1)).pow(0.5)).subtract(1).rename('FCD')
 
         self.image_mosaick = image_mosaick
-        self.image_collection_mask = image_collection_mask
+        # image_collection_mask is already set in __init__, no need to reassign
 
         self.avi_image = avi_image
         self.bsi_image = bsi_image

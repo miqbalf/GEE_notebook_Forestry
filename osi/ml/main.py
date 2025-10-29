@@ -405,7 +405,7 @@ class LandcoverML:
             print(line)
 
         # output_dir = os.path.join(root_osi_folder,"01_output")
-        output_dir = self.config['output_dir'] # change to the json info
+        # output_dir = self.config['output_dir'] # change to the json info
 
         # Write to a text file in 01_output and with the file name confusion_matrix_output_{self.config["project_name"]}.txt' - need to append in order for loop not overwriting
         with open(os.path.join(output_dir,f'conf_acc_{self.config["project_name"]}_{self.config["date_analyzed"]}.txt'), 'a') as f:

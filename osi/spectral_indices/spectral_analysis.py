@@ -8,8 +8,8 @@ class SpectralAnalysis:
         self.I_satellite = config['I_satellite']
         self.AOI = config['AOI']
         # scaling the pixel per satellite vendor type
-        self.pca_scaling = config['pca_scaling']
-        self.tileScale = config['tileScale']
+        self.pca_scaling = config.get('pca_scaling',1)
+        self.tileScale = config.get('tileScale',1)
 
         # self.I_satellite = I_satellite
         # self.AOI = AOI

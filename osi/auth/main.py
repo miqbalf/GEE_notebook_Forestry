@@ -93,9 +93,9 @@ def _initialize_with_service_account(credentials_path: Optional[str] = None,
         ee.Initialize(credentials, project=project_id)
         
         print(f"✓ GEE Initialized successfully")
-        print(f"  Service Account: {service_account_email}")
-        print(f"  Project ID: {project_id}")
-        print(f"  Credentials Path: {credentials_path}")
+        # print(f"  Service Account: {service_account_email}")
+        # print(f"  Project ID: {project_id}")
+        print(f"  Credentials Path: {credentials_path} - loaded successfully")
         
         return True
         
@@ -124,7 +124,8 @@ def _initialize_with_user_auth(project_id: Optional[str] = None) -> bool:
         
         print(f"✓ GEE Initialized successfully with user authentication")
         if project_id:
-            print(f"  Project ID: {project_id}")
+            # print(f"  Project ID: {project_id}")
+            None
         
         return True
         
@@ -212,7 +213,7 @@ def check_gee_initialization() -> bool:
 
 
 # Convenience function for quick initialization
-def quick_init(project_id: str = 'ee-iwansetiawan') -> bool:
+def quick_init(project_id: str) -> bool:
     """
     Quick initialization of GEE with default settings.
     
