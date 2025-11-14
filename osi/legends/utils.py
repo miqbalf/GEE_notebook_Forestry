@@ -11,7 +11,7 @@ def convert_to_legend_items(data):
 def legends_obj_creation(pallette_class_segment, class_name_dict):
     # Define the order of class IDs only for FCD
     all_keys = [k for k,v in pallette_class_segment.items()] 
-    all_keys_num_sorted = sorted([int(str) for str in all_keys])
+    all_keys_num_sorted = sorted([int(key) for key in all_keys])
     class_ids_order = [str(index) for index in all_keys_num_sorted] 
     #class_ids_order = set['1', '2', '3', '4', '5', '6', '7', '8', '9','10','11','12','13','14']
     
