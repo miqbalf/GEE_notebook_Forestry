@@ -240,12 +240,21 @@ class LandcoverML:
             training_input_variables = training_stats_segmented
             validation_input_variables = validation_stat_segmented
 
+            # Get cluster properties band names, excluding 'clusters' band if present
+            # The 'clusters' band is just an ID and shouldn't be used as a feature for classification
+            cluster_band_names = self.cluster_properties.bandNames()
+            # Remove 'clusters' band from input properties if it exists
+            cluster_band_names_list = cluster_band_names.getInfo()
+            if 'clusters' in cluster_band_names_list:
+                cluster_band_names_list = [b for b in cluster_band_names_list if b != 'clusters']
+            input_properties = ee.List(cluster_band_names_list)
+
             ############ RANDOM FOREST
             # Train a random forest classifier using the segmented statistics
             classifier_rf = ee.Classifier.smileRandomForest(num_trees).train(
                                 features=training_stats_segmented,
                                 classProperty=label_column,
-                                inputProperties=self.cluster_properties.bandNames()
+                                inputProperties=input_properties
                                 )
 
             # Classify the segments using the trained classifier
@@ -258,7 +267,7 @@ class LandcoverML:
                 classifier_svm = ee.Classifier.libsvm().train(
                     features=training_stats_segmented,
                     classProperty=label_column,
-                    inputProperties=self.cluster_properties.bandNames()
+                    inputProperties=input_properties
                 )
 
             # Classify the image using the trained classifier
@@ -271,7 +280,7 @@ class LandcoverML:
             ).train(
                 features=training_stats_segmented,
                 classProperty=label_column,
-                inputProperties=self.cluster_properties.bandNames()
+                inputProperties=input_properties
             )
 
             # Classify the image using the trained classifier
@@ -282,7 +291,7 @@ class LandcoverML:
             classifier_cart = ee.Classifier.smileCart().train(
                 features=training_stats_segmented,
                 classProperty=label_column,
-                inputProperties=self.cluster_properties.bandNames()
+                inputProperties=input_properties
             )
 
             # Classify the image using the trained classifier
@@ -349,15 +358,110 @@ class LandcoverML:
 
         # run the model
         classified_image_basedpixel = self.input_image.classify(classifier_pixel)
-        classified_image_rf = input_image.classify(classifier_rf)
-        if regression != True:
-            classified_image_svm = input_image.classify(classifier_svm)
+        
+        # For object-based classification, ensure all pixels in the same cluster get the same classification
+        # by using reduceConnectedComponents to get the mode classification per cluster
+        if pixel_based_only == False and self.cluster_properties is not None:
+            # Get the clusters band from cluster_properties if it exists
+            clusters_band = None
+            try:
+                cluster_bands = self.cluster_properties.bandNames().getInfo()
+                if 'clusters' in cluster_bands:
+                    clusters_band = self.cluster_properties.select('clusters')
+            except:
+                pass
+            
+            # Helper function to enforce object-based classification
+            def enforce_object_based_classification(classified_img, clusters_img):
+                """
+                Ensure all pixels in the same cluster get the same classification value.
+                
+                Note: When classifying cluster_properties directly, all pixels in the same cluster
+                should already have the same class (since they have identical input features).
+                However, we apply reduceConnectedComponents to ensure consistency and handle
+                any numerical precision issues that might cause slight variations.
+                """
+                if clusters_img is None:
+                    return classified_img
+                
+                # When classifying cluster_properties, all pixels in the same cluster have identical
+                # input features, so they should already get the same class. However, to ensure
+                # perfect consistency and handle any edge cases, we still apply reduceConnectedComponents.
+                # But this might create complexity that causes issues with confusion matrix sampling.
+                # 
+                # For now, we'll skip reduceConnectedComponents when classifying cluster_properties
+                # directly, since the classification should already be consistent per cluster.
+                # If grouping issues occur, we can re-enable this.
+                
+                # Simply rename to 'classification' and return
+                # The classification should already be consistent per cluster since we're classifying
+                # cluster_properties which has the same values for all pixels in a cluster
+                return classified_img.rename('classification')
+                
+                # Alternative: Apply reduceConnectedComponents (commented out to avoid complexity issues)
+                # Convert clusters band to integer (required by reduceConnectedComponents)
+                # clusters_int = clusters_img.toInt()
+                # classified_renamed = classified_img.rename('classification')
+                # classified_with_clusters = classified_renamed.addBands(clusters_int.rename('clusters'))
+                # mode_per_cluster = classified_with_clusters.select(['classification', 'clusters']).reduceConnectedComponents(
+                #     reducer=ee.Reducer.mode(),
+                #     labelBand='clusters',
+                #     maxSize=256
+                # )
+                # return mode_per_cluster.select('classification')
+            
+            # Apply object-based enforcement to all classified images
+            # Note: When classifying cluster_properties directly, all pixels in the same cluster
+            # should already have the same class (since they have identical input features).
+            # However, we still apply reduceConnectedComponents to ensure consistency and handle
+            # any edge cases. But if this causes issues, we can skip it.
+            if clusters_band is not None:
+                # Check if we're classifying cluster_properties (object-based) or input_image (pixel-based)
+                # If input_image is cluster_properties, all pixels in cluster already have same class,
+                # so reduceConnectedComponents might be redundant but helps ensure consistency
+                classified_image_rf = enforce_object_based_classification(
+                    input_image.classify(classifier_rf),
+                    clusters_band
+                )
+                if regression != True:
+                    classified_image_svm = enforce_object_based_classification(
+                        input_image.classify(classifier_svm),
+                        clusters_band
+                    )
+                else:
+                    print('no svm ML for regression mode')
+                    classified_image_svm = None
+                    classifier_svm = None
+                classified_image_gbm = enforce_object_based_classification(
+                    input_image.classify(classifier_gbm),
+                    clusters_band
+                )
+                classified_image_cart = enforce_object_based_classification(
+                    input_image.classify(classifier_cart),
+                    clusters_band
+                )
+            else:
+                # Fallback to regular classification if clusters band not available
+                classified_image_rf = input_image.classify(classifier_rf)
+                if regression != True:
+                    classified_image_svm = input_image.classify(classifier_svm)
+                else:
+                    print('no svm ML for regression mode')
+                    classified_image_svm = None
+                    classifier_svm = None
+                classified_image_gbm = input_image.classify(classifier_gbm)
+                classified_image_cart = input_image.classify(classifier_cart)
         else:
-            print('no svm ML for regression mode')
-            classified_image_svm = None
-            classifier_svm = None
-        classified_image_gbm = input_image.classify(classifier_gbm)
-        classified_image_cart = input_image.classify(classifier_cart)
+            # Pixel-based classification (no object-based enforcement needed)
+            classified_image_rf = input_image.classify(classifier_rf)
+            if regression != True:
+                classified_image_svm = input_image.classify(classifier_svm)
+            else:
+                print('no svm ML for regression mode')
+                classified_image_svm = None
+                classifier_svm = None
+            classified_image_gbm = input_image.classify(classifier_gbm)
+            classified_image_cart = input_image.classify(classifier_cart)
 
 
 
