@@ -15,32 +15,13 @@ class FCDCalc:
         self.I_satellite = config['I_satellite']
         self.IsThermal = config.get('IsThermal',False)
         self.AOI = config['AOI']
-        self.date_start_end = config['date_start_end']
-        self.cloud_cover_threshold = config['cloud_cover_threshold']
-        self.region = config['region']
-
-        if image_mosaick is None:
-            # Create ImageCollection and compute image_mosaick once
-            # image_mosaick() internally calls image_collection_mask(), so we only need to call image_mosaick()
-            self.InputCollection = ImageCollection(AOI=self.AOI, 
-                                                   date_start_end=self.date_start_end, 
-                                                   cloud_cover_threshold = self.cloud_cover_threshold, 
-                                                   I_satellite=self.I_satellite, 
-                                                   region=self.region, 
-                                                   config = self.config
-                                                   )
-            # Only call image_mosaick() once - it internally calls image_collection_mask()
-            # This avoids duplicate "selecting Sentinel images" messages
-            self.image_mosaick = self.InputCollection.image_mosaick()
-            # Get image_collection_mask separately if needed (but it may not be used)
-            # Note: image_mosaick already processed the collection, so we only fetch the mask if needed
-            self.image_collection_mask = None  # Will be computed lazily if needed
-        else:
-            # Use pre-computed images if provided
-            self.image_mosaick = image_mosaick
-            self.image_collection_mask = image_collection_mask
-            self.InputCollection = None  # Not needed if images are pre-computed
+        self.date_start_end = None
+        self.cloud_cover_threshold = None
+        self.region = None
+        self.image_mosaick = image_mosaick
+        self.image_collection_mask = image_collection_mask
         
+        self.InputCollection = None
         self.avi_image = None
         self.bsi_image = None
         self.si_image = None
@@ -61,6 +42,32 @@ class FCDCalc:
         self.FCD1_2 = None
         self.FCD2_1 = None
         
+
+
+        if self.image_mosaick is None:
+            # Create ImageCollection and compute image_mosaick once
+            # image_mosaick() internally calls image_collection_mask(), so we only need to call image_mosaick()
+            self.date_start_end = config['date_start_end']
+            self.cloud_cover_threshold = config['cloud_cover_threshold']
+            self.region = config['region']
+            self.InputCollection = ImageCollection(AOI=self.AOI, 
+                                                   date_start_end=self.date_start_end, 
+                                                   cloud_cover_threshold = self.cloud_cover_threshold, 
+                                                   I_satellite=self.I_satellite, 
+                                                   region=self.region, 
+                                                   config = self.config
+                                                   )
+            # Only call image_mosaick() once - it internally calls image_collection_mask()
+            # This avoids duplicate "selecting Sentinel images" messages
+            self.image_mosaick = self.InputCollection.image_mosaick()
+            # Get image_collection_mask separately if needed (but it may not be used)
+            # Note: image_mosaick already processed the collection, so we only fetch the mask if needed
+            self.image_collection_mask = None  # Will be computed lazily if needed
+        else:
+            # Use pre-computed images if provided
+            self.image_mosaick = image_mosaick
+            self.image_collection_mask = image_collection_mask
+            self.InputCollection = None  # Not needed if images are pre-computed
 
     def fcd_calc(self):
         ti_norm, ssi2 = None, None
