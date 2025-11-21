@@ -2,8 +2,25 @@ import ee
 
 # normalization image, utils
 # adapted from https://code.earthengine.google.com/a6013a970da3901f42b1db8ae7fc265a
-def normalization_100(image, pca_scale=30, AOI=None):
-    #image_scale = ee.Number(image.projection().nominalScale())
+def normalization_100(image, pca_scale=30, AOI=None, scale_factor=100):
+    """
+    Normalize image using min-max with ±3σ clipping.
+    
+    Parameters:
+    -----------
+    image : ee.Image
+        Input image to normalize
+    pca_scale : float, default=30
+        Scale for reduceRegion
+    AOI : ee.Geometry, optional
+        Region for computing statistics
+    scale_factor : float, default=100
+        Final scaling factor (100 for 0-100 range, 10000 for 0-10000 range)
+    
+    Returns:
+    --------
+    ee.Image : Normalized image scaled to [0, scale_factor]
+    """
     image_scale = pca_scale
     region = AOI
     def normalize_band(name):
@@ -32,7 +49,14 @@ def normalization_100(image, pca_scale=30, AOI=None):
 
     band_names = image.bandNames()
     unit_scale = ee.ImageCollection.fromImages(band_names.map(normalize_band)).toBands().rename(band_names)
-    return unit_scale.multiply(100)
+    return unit_scale.multiply(scale_factor)  # Changed from 100 to scale_factor
+
+def normalization_10000(image, pca_scale=30, AOI=None):
+    """
+    Normalize image to 0-10000 range (same as normalization_100 but scaled to 10000).
+    Useful for mosaicking to preserve precision.
+    """
+    return normalization_100(image, pca_scale=pca_scale, AOI=AOI, scale_factor=10000)
 
 def assigning_band(band_name_image,class_value,srcImg):
 
