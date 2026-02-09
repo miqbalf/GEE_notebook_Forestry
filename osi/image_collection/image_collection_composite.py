@@ -136,8 +136,8 @@ class ImageCollectionComposite:
         else:
             s2_sr_cld_col = get_s2_sr_cld_col(self.AOI, self.start_date, self.end_date, self.cloud_cover_threshold)
 
-        SEN_BANDS = ['B2',   'B3', 'B4',  'B5', 'B6', 'B7', 'B8', 'B8A', 'B11', 'B12', 'cloudM' ]
-        bandNamesSentinel2 = ['blue', 'green', 'red', 'redE1', 'redE2', 'redE3', 'nir', 'redE4', 'swir1', 'swir2','cloudM']
+        SEN_BANDS = ['B1','B2',   'B3', 'B4',  'B5', 'B6', 'B7', 'B8', 'B8A', 'B11', 'B12', 'cloudM' ]
+        bandNamesSentinel2 = ['alpha','blue', 'green', 'red', 'redE1', 'redE2', 'redE3', 'nir', 'redE4', 'swir1', 'swir2','cloudM']
 
         # Apply the cloud and shadow mask to the entire image collection
         s2_sr_cld_col_masked = s2_sr_cld_col.map(lambda image: apply_cld_shdw_mask(image)['masked_image'])

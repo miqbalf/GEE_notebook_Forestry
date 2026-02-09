@@ -1,3 +1,8 @@
+./docker-data/
+./docker-data/*
+./docker-data/**
+./docker-data
+
 .DS_Store
 .ipynb_checkpoints/*
 ./.ipynb_checkpoints/**
