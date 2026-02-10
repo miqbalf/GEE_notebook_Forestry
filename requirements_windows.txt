@@ -1,0 +1,47 @@
+# Windows / ArcGIS Pro compatible requirements.
+#
+# Use this file when installing inside ArcGIS Pro's Python environment on Windows.
+# It adds ArcGIS Python API compatibility pins for `pyarrow` and `pywin32`.
+
+certifi
+contourpy
+earthengine-api
+Fiona
+folium
+geemap
+geocoder
+geopandas
+google-api-core
+google-api-python-client
+google-auth
+google-auth-httplib2
+google-cloud-core
+google-cloud-storage
+google-crc32c
+google-resumable-media
+googleapis-common-protos
+ipyleaflet
+ipython
+ipywidgets
+jupyter
+jupyterlab-widgets
+matplotlib
+matplotlib-inline
+nest-asyncio
+notebook
+numpy
+pandas
+pandocfilters
+Pillow
+plotly
+PyCRS
+Pygments
+pyproj
+qtconsole
+scikit-learn
+scipy
+shapely
+
+# ArcGIS Pro compatibility pins (ArcGIS Python API 2.4.x)
+pyarrow>=17,<21
+pywin32>=223
