@@ -13,40 +13,67 @@ class OBIASegmentation:
                                     'NDVI',
                                     'VARI',
                                     'FCD1',
-                                    'FCD2']):
+                                    'FCD2'],
+                 segment_on_rgb=False,
+                 segment_bands=None):
         self.image = image
         self.super_pixel_size = config['super_pixel_size']
         self.pca_scale = pca_scale
         ## default to OSI, but now we can change this to any bands we want to select
         self.bands_to_select = bands_to_select
+        # If True: SNIC uses only RGB (or segment_bands) for boundaries; mean aggregation uses full-spectral image
+        self.segment_on_rgb = segment_on_rgb
+        self.segment_bands = segment_bands or ['red', 'green', 'blue']
 
     # by default cluster aggregation per cluster are on the mean summary, if we want to create another aggregation (std, area, etc we can apply again later)
     def SNIC_cluster(self):
-        # Apply SNIC segmentation on the FCD image
+        if self.segment_on_rgb:
+            return self._SNIC_cluster_rgb_segment_full_aggregate()
+        return self._SNIC_cluster_same_image()
+
+    def _SNIC_cluster_same_image(self):
+        """Original: segment and aggregate both use the same image (all bands)."""
         snic = ee.Algorithms.Image.Segmentation.SNIC(
             image=self.image,
-            # image= avi_norm,
             size=self.super_pixel_size,
-            compactness=0, # let's make this default for the moment, we can change it later
+            compactness=0,
             connectivity=8,
             neighborhoodSize=64,
-            # seeds=seeds,
-        ).reproject( # handling/apply the workaround of inconsistency https://gis.stackexchange.com/questions/333413/is-google-earth-engine-snic-segmentation-algorithm-inconsistent
-        crs='EPSG:4326',
-        scale=self.pca_scale)
-
-        ## band to select into mean suffix
+        ).reproject(
+            crs='EPSG:4326',
+            scale=self.pca_scale)
         bands_to_select_mean = [band + '_mean' for band in self.bands_to_select]
-
-        # only means number of these bands in clusters
         mean_cluster_values = snic.select(bands_to_select_mean)
-
-        # Map.addLayer(vectors, {}, 'snic-vector')
-
-        # Pull out the clusters layer, each cluster has a uniform value
         clusters = snic.select('clusters')
-        return { 'clusters':clusters,
-                'mean_cluster_values':mean_cluster_values }
+        return {'clusters': clusters, 'mean_cluster_values': mean_cluster_values}
+
+    def _SNIC_cluster_rgb_segment_full_aggregate(self):
+        """Segment on RGB (or segment_bands) for boundaries; aggregate mean from original full-spectral image."""
+        # Image for segmentation: fewer bands (e.g. RGB) for cleaner, more stable boundaries
+        image_for_segmentation = self.image.select(self.segment_bands)
+        snic = ee.Algorithms.Image.Segmentation.SNIC(
+            image=image_for_segmentation,
+            size=self.super_pixel_size,
+            compactness=0,
+            connectivity=8,
+            neighborhoodSize=64,
+        ).reproject(
+            crs='EPSG:4326',
+            scale=self.pca_scale)
+        clusters = snic.select('clusters')
+
+        # Aggregate (mean) from original image: use full spectral resolution for cluster statistics
+        image_for_aggregation = self.image.select(self.bands_to_select).addBands(clusters)
+        mean_image = image_for_aggregation.reduceConnectedComponents(
+            reducer=ee.Reducer.mean(),
+            labelBand='clusters',
+            maxSize=256,
+        )
+        # SNIC / summarize_cluster expect bands named band_mean
+        bands_to_select_mean = [b + '_mean' for b in self.bands_to_select]
+        mean_cluster_values = mean_image.select(self.bands_to_select).rename(bands_to_select_mean)
+
+        return {'clusters': clusters, 'mean_cluster_values': mean_cluster_values}
     
     def summarize_cluster(self, is_include_std = False):
         clusters = self.SNIC_cluster()['clusters']
