@@ -3,12 +3,7 @@ import ee
 # exploring SNIC - SEGMENTATION
 # adapted from #https://gis.stackexchange.com/questions/333413/is-google-earth-engine-snic-segmentation-algorithm-inconsistent
 class OBIASegmentation:
-    def __init__(self, config, image, pca_scale):
-        self.image = image
-        self.super_pixel_size = config['super_pixel_size']
-        self.pca_scale = pca_scale
-        ## default to OSI, but now we can change this to any bands we want to select
-        self.bands_to_select = [ 'red',
+    def __init__(self, config, image, pca_scale, bands_to_select=[ 'red',
                                     'green',
                                     'blue',
                                     'nir',
@@ -18,7 +13,12 @@ class OBIASegmentation:
                                     'NDVI',
                                     'VARI',
                                     'FCD1',
-                                    'FCD2']
+                                    'FCD2']):
+        self.image = image
+        self.super_pixel_size = config['super_pixel_size']
+        self.pca_scale = pca_scale
+        ## default to OSI, but now we can change this to any bands we want to select
+        self.bands_to_select = bands_to_select
 
     # by default cluster aggregation per cluster are on the mean summary, if we want to create another aggregation (std, area, etc we can apply again later)
     def SNIC_cluster(self):
