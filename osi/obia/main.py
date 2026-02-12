@@ -7,6 +7,18 @@ class OBIASegmentation:
         self.image = image
         self.super_pixel_size = config['super_pixel_size']
         self.pca_scale = pca_scale
+        ## default to OSI, but now we can change this to any bands we want to select
+        self.bands_to_select = [ 'red',
+                                    'green',
+                                    'blue',
+                                    'nir',
+                                    'ndwi',
+                                    'msavi2',
+                                    'MTVI2',
+                                    'NDVI',
+                                    'VARI',
+                                    'FCD1',
+                                    'FCD2']
 
     # by default cluster aggregation per cluster are on the mean summary, if we want to create another aggregation (std, area, etc we can apply again later)
     def SNIC_cluster(self):
@@ -23,20 +35,11 @@ class OBIASegmentation:
         crs='EPSG:4326',
         scale=self.pca_scale)
 
+        ## band to select into mean suffix
+        bands_to_select_mean = [band + '_mean' for band in self.bands_to_select]
+
         # only means number of these bands in clusters
-        mean_cluster_values = snic.select([
-        'red_mean',
-        'green_mean',
-        'blue_mean',
-        'nir_mean',
-        'ndwi_mean',
-        'msavi2_mean',
-        'MTVI2_mean',
-        'NDVI_mean',
-        'VARI_mean',
-        'FCD1_1_mean',
-        'FCD2_1_mean',
-        ])
+        mean_cluster_values = snic.select(bands_to_select_mean)
 
         # Map.addLayer(vectors, {}, 'snic-vector')
 
