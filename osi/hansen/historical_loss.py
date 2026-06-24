@@ -15,7 +15,7 @@ class HansenHistorical:
         # hansen - updated version - global data
         # gfc = ee.Image("UMD/hansen/global_forest_change_2022_v1_10")
         # gfc = ee.Image('UMD/hansen/global_forest_change_2023_v1_11') # updated to hansen 2023 version
-        gfc = ee.Image("UMD/hansen/global_forest_change_2024_v1_12") # updated to hansen 2024 version
+        gfc = ee.Image("UMD/hansen/global_forest_change_2025_v1_13") # updated to hansen 2025 version
         
         #Canopy cover percentage (e.g. 30%), for Indonesia
         cc = ee.Number(self.tree_cover_forest)

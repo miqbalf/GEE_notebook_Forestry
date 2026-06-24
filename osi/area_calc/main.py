@@ -16,7 +16,7 @@ class CalcAreaClass:
         self.scale = scale
         self.AOI_client = self.AOI.getInfo()
 
-        self.list_id = [i['properties']['id'] for i in self.AOI_client['features']]
+        self.list_id = [i['properties'].get('id', i.get('id', str(idx))) for idx, i in enumerate(self.AOI_client['features'])]
 
         self.calc_image = calc_image
         self.calc_pix = ee.Image(assigning_band('pix',1,self.calc_image))
@@ -25,7 +25,7 @@ class CalcAreaClass:
         self.list_geom = [i['geometry'] for i in self.AOI_client['features']]
         # print(list_geom)
         
-        self.class_list = ['1','2','3','4','5','6','7','8']
+        self.class_list = ['1','2','3','4','5','6','7','8','9']
         # print(class_list)
     
     # Define calc_area
