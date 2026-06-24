@@ -31,8 +31,6 @@ class CalcAreaClass:
     # Define calc_area
     def calc_area_zone(self, class_zone, feature):
         geometry = feature.geometry()
-        feature_id = feature.get('id')  # hard-coded the field name here is still 'id'
-        # geometry = feature
         class_mask = self.calc_image.select('Class').eq(ee.Number.parse(class_zone))
         
         masked_imaged = self.calc_pix.select('pix').mask(class_mask)
@@ -45,9 +43,7 @@ class CalcAreaClass:
             scale=self.scale
         ).get('pix')
     
-        result = ee.Feature(geometry, {class_zone: class_pixel_count, 'feature_id': feature_id})
-        # result = {class_zone: class_pixel_count.getInfo()}
-        # result = ee.Feature({class_zone: class_pixel_count})
+        result = ee.Feature(geometry, {class_zone: class_pixel_count})
         return result
 
     def calc_all_zone(self):
@@ -80,32 +76,24 @@ class CalcAreaClass:
         return final_results
     def run_calc_per_id(self):
         # this method to clean the result into a better human readable and api-json serializable
-        list_dict_zone_id = []
+        # Each FeatureCollection from calc_all_zone maps over self.AOI, so features are in the same order.
+        # We use positional matching instead of feature_id.
+        num_features = len(self.list_id)
+        zone_values = {fid: {} for fid in self.list_id}
+
         for i in self.calc_all_zone():
-            for j in i['features']:
-                # print(j['properties'])
-                list_dict_zone_id.append(j['properties'])
-        
-        # list_id
-        dict_id_zone = {}
-        for i in self.list_id:
-            init_dict = {}
-            for j in list_dict_zone_id:
-                
-                if j['feature_id'] == i:
-                    for k,v in j.items():
-                        if k != 'feature_id':
-                            init_dict[k] = v
-                dict_id_zone[i] = init_dict
-        
-        # print(dict_id_zone)
+            for idx, j in enumerate(i['features']):
+                if idx < num_features:
+                    fid = self.list_id[idx]
+                    for k, v in j['properties'].items():
+                        zone_values[fid][k] = v
         
         # adjusting dict_id
         adj_dict_id_zone = {}
-        for k,v in dict_id_zone.items():
+        for k, v in zone_values.items():
             init_dict = {}
-            for j,l in v.items():
-                init_dict[j] = round(l,2)
+            for j, l in v.items():
+                init_dict[j] = round(l, 2)
             adj_dict_id_zone[k] = init_dict
         print(adj_dict_id_zone)
         return adj_dict_id_zone
