@@ -1,8 +1,51 @@
 import ee
+import re
+
 ############################ Deforestation areas - TCL (Tree Cover Loss)
 ### adapted from https://developers.google.com/earth-engine/tutorials/community/forest-cover-loss-estimation
+
+DEFAULT_HANSEN_GFC_ASSET = "UMD/hansen/global_forest_change_2025_v1_13"
+
+
+def resolve_gfc_asset(config, gfc_asset=None):
+    """
+    Resolve Hansen GFC Earth Engine Image ID.
+
+    Hansen is republished every year (2022_v1_10, 2023_v1_11, 2025_v1_13, ...).
+    Pass the asset via:
+      - HansenHistorical(config, gfc_asset='UMD/hansen/...')
+      - config['hansen_gfc_asset'] or config['gfc_asset']
+      - config['hansen']['gfc_asset']
+    """
+    def _clean(value):
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        return None
+
+    resolved = _clean(gfc_asset)
+    if resolved:
+        return resolved
+    if isinstance(config, dict):
+        resolved = _clean(config.get('hansen_gfc_asset') or config.get('gfc_asset'))
+        if resolved:
+            return resolved
+        nested = config.get('hansen')
+        if isinstance(nested, dict):
+            resolved = _clean(nested.get('gfc_asset') or nested.get('hansen_gfc_asset'))
+            if resolved:
+                return resolved
+    return DEFAULT_HANSEN_GFC_ASSET
+
+
+def hansen_lossyear_max(gfc_asset):
+    match = re.search(r'global_forest_change_(\d{4})', gfc_asset or '')
+    if match:
+        return int(match.group(1)[2:4])
+    return 25
+
+
 class HansenHistorical:
-    def __init__(self, config):
+    def __init__(self, config, gfc_asset=None):
         self.config = config
         self.pixel_number = config['pixel_number']
         self.year_start_loss = config['year_start_loss']
@@ -11,32 +54,31 @@ class HansenHistorical:
         self.date_start_end = config['date_start_end']
         self.end_year_hansen = int(self.date_start_end[1][2:4])
         self.AOI = config['AOI']
+        self.gfc_asset = resolve_gfc_asset(config, gfc_asset)
+
     def initiate_tcl(self):
-        # hansen - updated version - global data
-        # gfc = ee.Image("UMD/hansen/global_forest_change_2022_v1_10")
-        # gfc = ee.Image('UMD/hansen/global_forest_change_2023_v1_11') # updated to hansen 2023 version
-        gfc = ee.Image("UMD/hansen/global_forest_change_2025_v1_13") # updated to hansen 2025 version
-        
+        gfc = ee.Image(self.gfc_asset)
+
         #Canopy cover percentage (e.g. 30%), for Indonesia
         cc = ee.Number(self.tree_cover_forest)
-        
+
         #Minimum forest area in pixels (e.g. 3 pixels, ~ 0.27 ha in this example).
         pixels = ee.Number(self.pixel_number)
-        
+
         #Minimum mapping area for tree loss (usually same as the minimum forest area).
         lossPixels = pixels
-        
+
         canopyCover = gfc.select(['treecover2000'])
         canopyCoverThreshold = canopyCover.gte(cc).selfMask()
-        
+
         #Use connectedPixelCount() to get contiguous area.
         contArea = canopyCoverThreshold.connectedPixelCount()
         #Apply the minimum area requirement.
         minArea = contArea.gte(pixels).selfMask()
-        
+
         prj = gfc.projection()
         scale = prj.nominalScale()
-        ForestArea2000Hansen = minArea.reproject(prj.atScale(scale))  
+        ForestArea2000Hansen = minArea.reproject(prj.atScale(scale))
         #Map.addLayerControl()
         # Map.addLayer(ForestArea2000Hansen, {
         #     'palette': ['#96ED89']
@@ -52,19 +94,19 @@ class HansenHistorical:
 
         ### HISTORICAL DATA THRESHOLD - Get the TCL data LOSS PIXEL overall data from loss year in the input
         # adapted from https://developers.google.com/earth-engine/tutorials/community/forest-cover-loss-estimation
-        
+
         treeLossYear = gfc.select(['lossyear'])
          # tree loss in e.g., year > 2012 ####SHOULD CHANGE TO RECENT YEAR for the '12' number and now we add less than year end if analysis is back date under the hansen updated data
         treeLoss = treeLossYear.gte(self.year_start_loss).And(treeLossYear.lte(self.end_year_hansen)).selfMask()
         #Select the tree loss within the derived tree cover
         #(>= canopy cover and area requirements). THIS ONE ALREADY MASK TCL IN FOREST AREA
         treecoverLoss = minArea.And(treeLoss).rename(f'lossfrom_{self.year_start_loss}').selfMask()
-        
+
         #Create connectedPixelCount() to get contiguous area.
         contLoss = treecoverLoss.connectedPixelCount()
         #Apply the minimum area requirement, and get the TCL data ---> minLoss - ACTUAL TCL AREA from Hansen since the year_start_loss
         minLoss = contLoss.gte(lossPixels).selfMask()
-        
+
         # Map.addLayer(treeLossYear.clip(AOI),{"opacity":1,"bands":["lossyear"],"min":1,"max":22,"palette":["3d358c","4457c9","4777f0","4196ff","2eb4f3","1ad1d5","1ae5b6","36f493","64fd6a","92ff47","b4f836","d3e935","ecd239","fbb938","fe992c","f9751d","ec520e","d93806","bf2102","9f1001","7a0403","#FF0000"]},"Tree Loss Year", False)
         # Map.addLayer(minLoss.clip(AOI),{
         #     'palette': ['#ff0000']
@@ -76,4 +118,5 @@ class HansenHistorical:
             'minLoss':minLoss,
             'ForestArea2000Hansen': ForestArea2000Hansen,
             'gfc': gfc,
+            'gfc_asset': self.gfc_asset,
         }
