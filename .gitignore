@@ -65,3 +65,7 @@ docs/_build/
 # service-account key, never commit (security 2026-11-09)
 user_id.json
 *.json.key
+
+# AOI boundary archives are project data; keep them out of this public repo
+*.zip
+shp/
