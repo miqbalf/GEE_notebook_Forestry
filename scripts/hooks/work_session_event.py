@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -20,6 +21,8 @@ EVENTS = {
 }
 CODING_THROTTLE_SECONDS = 60
 TIMEOUT_SECONDS = 2.0
+SEND_TIMEOUT_SECONDS = 10.0
+RETRY_DELAY_SECONDS = 2.0
 DEFAULT_URL = "https://treeo.cloud"
 PATH = "/v1/work/session-event"
 
@@ -83,7 +86,7 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
-def send(payload: dict, token: str, base_url: str, timeout: float = TIMEOUT_SECONDS) -> None:
+def send(payload: dict, token: str, base_url: str, timeout: float = SEND_TIMEOUT_SECONDS) -> None:
     request = urllib.request.Request(
         base_url.rstrip("/") + PATH,
         data=json.dumps(payload).encode(),
@@ -95,7 +98,7 @@ def send(payload: dict, token: str, base_url: str, timeout: float = TIMEOUT_SECO
         response.read()
 
 
-def handle(data: dict, env=None, directory: Path | None = None, poster=send, lookup=repo_and_branch) -> bool:
+def handle(data: dict, env=None, directory: Path | None = None, poster=send, lookup=repo_and_branch, sleep=time.sleep) -> bool:
     env = os.environ if env is None else env
     token = env.get("TREEO_PAT", "")
     if not token:
@@ -106,7 +109,17 @@ def handle(data: dict, env=None, directory: Path | None = None, poster=send, loo
     payload = build_payload(data, lookup=lookup)
     if payload is None:
         return False
-    poster(payload, token, env.get("TREEO_HERMES_URL") or DEFAULT_URL)
+    url = env.get("TREEO_HERMES_URL") or DEFAULT_URL
+    try:
+        poster(payload, token, url)
+    except urllib.error.HTTPError as exc:
+        if exc.code < 500:
+            return False
+        sleep(RETRY_DELAY_SECONDS)
+        poster(payload, token, url)
+    except Exception:
+        sleep(RETRY_DELAY_SECONDS)
+        poster(payload, token, url)
     return True
 
 
